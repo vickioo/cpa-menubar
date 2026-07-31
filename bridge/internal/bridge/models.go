@@ -21,15 +21,24 @@ type Account struct {
 	SubscriptionUntil string          `json:"subscription_until,omitempty"`
 	Source            string          `json:"source,omitempty"`
 	DisplayName       string          `json:"display_name,omitempty"`
+	AuthorizationType string          `json:"authorization_type,omitempty"`
 	Status            string          `json:"status,omitempty"`
 	Schedulable       bool            `json:"schedulable"`
 	Valid             bool            `json:"valid"`
 	Focus             bool            `json:"focus"`
-	Priority          int             `json:"priority,omitempty"`
 	Groups            []string        `json:"groups,omitempty"`
 	LastUsedAt        string          `json:"last_used_at,omitempty"`
 	RecentRequests    int64           `json:"recent_requests,omitempty"`
 	RecentErrors      int64           `json:"recent_errors,omitempty"`
+	FiveHourUsed      *float64        `json:"five_hour_used_percent,omitempty"`
+	FiveHourResetAt   string          `json:"five_hour_reset_at,omitempty"`
+	WeeklyUsed        *float64        `json:"weekly_used_percent,omitempty"`
+	WeeklyResetAt     string          `json:"weekly_reset_at,omitempty"`
+	WeeklyLimit       *float64        `json:"weekly_limit,omitempty"`
+	WeeklyUsage       *float64        `json:"weekly_usage,omitempty"`
+	UsageUpdatedAt    string          `json:"usage_updated_at,omitempty"`
+	RateLimitResetAt  string          `json:"rate_limit_reset_at,omitempty"`
+	OpsHealth         string          `json:"ops_health,omitempty"`
 }
 
 type Summary struct {
@@ -83,11 +92,13 @@ type AccountDetail struct {
 }
 
 type PoolSummary struct {
-	ID             string  `json:"id"`
-	Name           string  `json:"name"`
-	Accounts       int64   `json:"accounts"`
-	WeeklyLimitUSD float64 `json:"weekly_limit_usd"`
-	WeeklyUsageUSD float64 `json:"weekly_usage_usd"`
+	ID                string   `json:"id"`
+	Name              string   `json:"name"`
+	Accounts          int64    `json:"accounts"`
+	WeeklyLimit       *float64 `json:"weekly_limit,omitempty"`
+	WeeklyUsage       *float64 `json:"weekly_usage,omitempty"`
+	WeeklyUsedPercent *float64 `json:"weekly_used_percent,omitempty"`
+	WeeklyResetAt     string   `json:"weekly_reset_at,omitempty"`
 }
 
 type PoolsResponse struct {

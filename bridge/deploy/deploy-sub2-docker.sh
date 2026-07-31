@@ -37,16 +37,36 @@ else
     -c "CREATE ROLE cpa_desktop_reader LOGIN PASSWORD '$reader_password'"
 fi
 
+view_exists="$(sudo docker exec "$postgres_container" psql -U "$db_user" -d "$db_name" -Atc "SELECT to_regclass('public.cpa_desktop_account_usage') IS NOT NULL")"
+if [[ "$view_exists" == "t" ]]; then
+  sudo docker exec "$postgres_container" pg_dump -U "$db_user" -d "$db_name" \
+    --schema-only --table=public.cpa_desktop_account_usage \
+    | sudo tee "$deploy_dir/cpa_desktop_account_usage.backup.$(date +%Y%m%d-%H%M%S).sql" >/dev/null
+fi
+sudo docker exec -i "$postgres_container" psql -U "$db_user" -d "$db_name" -v ON_ERROR_STOP=1 \
+  < "$repo_dir/bridge/deploy/sub2-account-usage-view.sql"
+
 sudo docker exec "$postgres_container" psql -U "$db_user" -d "$db_name" -v ON_ERROR_STOP=1 \
   -c "GRANT CONNECT ON DATABASE \"$db_name\" TO cpa_desktop_reader" \
   -c "GRANT USAGE ON SCHEMA public TO cpa_desktop_reader" \
-  -c "GRANT SELECT (id,name,platform,type,status,schedulable,priority,expires_at,last_used_at,temp_unschedulable_until,deleted_at,notes) ON public.accounts TO cpa_desktop_reader" \
+  -c "REVOKE SELECT (priority,notes) ON public.accounts FROM cpa_desktop_reader" \
+  -c "REVOKE SELECT (weekly_limit_usd) ON public.groups FROM cpa_desktop_reader" \
+  -c "REVOKE SELECT (group_id,actual_cost) ON public.usage_logs FROM cpa_desktop_reader" \
+  -c "GRANT SELECT (id,name,platform,type,status,schedulable,expires_at,last_used_at,temp_unschedulable_until,deleted_at) ON public.accounts TO cpa_desktop_reader" \
   -c "GRANT SELECT (account_id,group_id) ON public.account_groups TO cpa_desktop_reader" \
-  -c "GRANT SELECT (id,name,weekly_limit_usd) ON public.groups TO cpa_desktop_reader" \
-  -c "GRANT SELECT (id,account_id,group_id,actual_cost,created_at) ON public.usage_logs TO cpa_desktop_reader" \
+  -c "GRANT SELECT (id,name) ON public.groups TO cpa_desktop_reader" \
+  -c "GRANT SELECT (account_id,created_at) ON public.usage_logs TO cpa_desktop_reader" \
   -c "GRANT SELECT (account_id,created_at) ON public.ops_error_logs TO cpa_desktop_reader" \
+  -c "GRANT SELECT ON public.cpa_desktop_account_usage TO cpa_desktop_reader" \
   -c "ALTER ROLE cpa_desktop_reader SET default_transaction_read_only = on" \
   -c "ALTER ROLE cpa_desktop_reader SET statement_timeout = '5s'"
+
+permission_check="$(sudo docker exec "$postgres_container" psql -U "$db_user" -d "$db_name" -Atc \
+  "SELECT has_column_privilege('cpa_desktop_reader','public.accounts','credentials','SELECT'), has_column_privilege('cpa_desktop_reader','public.accounts','extra','SELECT'), has_table_privilege('cpa_desktop_reader','public.cpa_desktop_account_usage','SELECT')")"
+if [[ "$permission_check" != "f|f|t" ]]; then
+  echo "Unexpected cpa_desktop_reader privileges: $permission_check" >&2
+  exit 1
+fi
 
 env_tmp="$(mktemp)"
 trap 'rm -f "$env_tmp"' EXIT
@@ -56,8 +76,8 @@ umask 077
   echo "CPA_DESKTOP_TOKEN=$desktop_token"
   echo "CPA_ACCOUNT_SOURCE=sub2"
   echo "SUB2_DATABASE_URL=postgres://cpa_desktop_reader:$reader_password@$postgres_container:5432/$db_name?sslmode=disable"
-  echo "SUB2_FOCUS_PRIORITY=999999"
-  echo "SUB2_FOCUS_GROUP_IDS="
+  echo "SUB2_TARGET_0703_ACCOUNT_ID=20"
+  echo "SUB2_TARGET_FU_ACCOUNT_IDS=2,24"
 } > "$env_tmp"
 sudo install -m 0600 "$env_tmp" "$deploy_dir/bridge.env"
 

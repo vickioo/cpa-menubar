@@ -17,7 +17,7 @@ The repository contains:
 - Optional xAI Management API billing totals and prepaid-credit balance.
 - Separate operational telemetry from a compatible smart-router summary endpoint.
 - Codex PKCE login from the menu bar, with credentials written directly to the configured auth directory.
-- Optional read-only Sub2 mode that returns only valid or explicitly focused accounts.
+- Optional read-only Sub2 mode that returns only currently valid accounts.
 - Desktop token stored only in a remote `0600` file and the local macOS Keychain.
 - Configurable auto-refresh and native launch-at-login support.
 
@@ -45,15 +45,15 @@ The bridge does not return access tokens, refresh tokens, ID tokens, management 
 
 ### Sub2 read-only mode
 
-Set `CPA_ACCOUNT_SOURCE=sub2` to read operational account status from Sub2 PostgreSQL instead of auth files. The bridge includes an account only when it is currently valid, or when it is marked as important by priority, `[focus]` / `[重点]` in notes, or a configured focus group.
+Set `CPA_ACCOUNT_SOURCE=sub2` to read operational account status from Sub2 PostgreSQL instead of auth files. The bridge includes an account only when it is active, schedulable, unexpired, and not temporarily blocked. Focus is controlled manually by the Windows dashboard and remains in the local browser profile.
 
-The Sub2 query uses an explicit column list and never selects `credentials`, `extra`, tokens, passwords, or complete provider identifiers. Use a dedicated PostgreSQL login with column-level grants; see [bridge/deploy/sub2-readonly.sql](bridge/deploy/sub2-readonly.sql).
+The Sub2 query uses an explicit column list. A database-owner view extracts only named upstream quota scalars from `credentials` and `extra`; the desktop reader cannot select either source column. Use the dedicated PostgreSQL login and restricted view in [bridge/deploy/sub2-readonly.sql](bridge/deploy/sub2-readonly.sql) and [bridge/deploy/sub2-account-usage-view.sql](bridge/deploy/sub2-account-usage-view.sql).
 
 ```dotenv
 CPA_ACCOUNT_SOURCE=sub2
 SUB2_DATABASE_URL=postgres://cpa_desktop_reader:REPLACE_ME@postgres:5432/sub2?sslmode=require
-SUB2_FOCUS_PRIORITY=80
-SUB2_FOCUS_GROUP_IDS=
+SUB2_TARGET_0703_ACCOUNT_ID=20
+SUB2_TARGET_FU_ACCOUNT_IDS=2,24
 ```
 
 In this mode OAuth and reset-credit endpoints are disabled, and the app hides their controls.
@@ -75,11 +75,13 @@ Run `preview/start-tray.vbs` or use the generated desktop shortcut. The tray pro
 - opens the dashboard on double-click;
 - provides reconnect and exit actions from its context menu.
 
-The dashboard only lists server-approved valid accounts. Stars are controlled manually and stored in the local browser profile; they do not write to Sub2. The automatic anomaly filter only considers recent errors among the returned valid accounts.
+The dashboard only lists server-approved valid accounts. Stars are controlled manually and stored in the local browser profile; they do not write to Sub2. A quota-pressure filter can isolate accounts at 90% weekly usage without marking them as focused.
 
 Account names stay masked in the list. Selecting a name requests a narrow authenticated detail endpoint that returns only the full Sub2 display name and public account ID.
 
-The overview and tray menu show the configured weekly Sub2 group budget for groups 12 and 13. This is an internal spend limit calculated from `usage_logs.actual_cost`; it is not the provider's official ChatGPT/Codex quota. Reading official upstream quota requires a separately authorized integration with Sub2's upstream billing probe.
+The overview and tray menu use upstream quota values already cached by Sub2. The 0703 card reads the configured 20X primary account's native 7-day percentage and reset time. The FuCCC card sums the weekly limit and usage for its two configured API-key mirror accounts. These figures are not Sub2 group budgets or `usage_logs.actual_cost` totals.
+
+Each account card uses its native 7-day or weekly quota as the primary progress bar. Expanding a selected account reveals 5-hour quota, reset time, bound groups, authorization type, plan, last use, and quota update time. Reset-credit count is shown as unavailable until Sub2 exposes a verified cached field; the bridge does not infer it.
 
 ## Configuration
 

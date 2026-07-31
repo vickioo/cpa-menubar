@@ -5,44 +5,43 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Sub2 账号池</title>
   <style>
-    :root{font-family:Inter,"Segoe UI",sans-serif;color:#171b20;background:#e9ecef;letter-spacing:0}
+    :root{font-family:Inter,"Segoe UI",sans-serif;color:#171b20;background:#e7eaed;letter-spacing:0}
     *{box-sizing:border-box;letter-spacing:0}body{margin:0;min-height:100vh}button{font:inherit}
-    .panel{width:min(420px,100%);min-height:100vh;margin:auto;padding:14px 13px 22px;background:rgba(249,250,251,.97);box-shadow:0 8px 30px rgba(35,42,50,.14)}
-    header{display:flex;align-items:flex-start;gap:8px;padding-bottom:10px;border-bottom:1px solid #d8dde3}
-    h1{margin:0;font-size:18px}.sub{margin-top:3px;color:#6a737d;font-size:12px}
-    .status{margin-left:auto;display:flex;align-items:center;gap:6px;color:#287148;font-size:12px;white-space:nowrap}.dot{width:7px;height:7px;border-radius:50%;background:#39a46a}
-    .metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:10px 0}
-    .metric{padding:9px 10px;background:#fff;border:1px solid #d8dde3;border-radius:6px}.metric span{color:#69727c;font-size:10px}.metric strong{display:block;margin-top:3px;font-size:18px}.healthy{color:#287148}.warn{color:#a86613}
-    .view-tabs{display:flex;justify-content:center;gap:3px;padding:10px 0 8px;border-bottom:1px solid #d8dde3}.view-tabs button{border:0;border-radius:5px;background:transparent;padding:6px 16px;cursor:pointer}.view-tabs button.active{background:#212a33;color:#fff}
-    .toolbar{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #d8dde3}
-    .tabs{display:flex;border:1px solid #cbd2d9;border-radius:6px;overflow:hidden}.tabs button{padding:6px 13px;border:0;border-right:1px solid #cbd2d9;background:#fff;cursor:pointer}.tabs button:last-child{border:0}.tabs button.active{background:#212a33;color:#fff}
-    .sync{margin-left:auto;color:#69727c;font-size:10px}.list{display:grid;gap:5px;padding-top:8px}
-    .account{padding:9px 10px;background:#fff;border:1px solid #d8dde3;border-left:3px solid #75808a;border-radius:5px}.account.focus{border-left-color:#c38a18}.account.attention{background:#fffbf2}
-    .head,.health,.stats{display:flex;align-items:center;gap:9px}.head{align-items:flex-start}.name-button{border:0;background:transparent;padding:0;color:#171b20;font-weight:700;cursor:pointer;text-align:left}.name-button:hover{text-decoration:underline}.meta{margin-top:3px;color:#69727c;font-size:11px}.state{margin-left:auto;color:#287148;font-size:12px;white-space:nowrap}.state.bad{color:#a86613}
-    .meta{max-width:310px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.focus-button{margin-left:auto;width:25px;height:25px;padding:0;border:0;background:transparent;color:#87909a;font-size:18px;cursor:pointer}.focus-button.active{color:#bd8111}.focus-button+.state{margin-left:0}
-    .health{margin-top:8px}.health>span{width:48px;font-size:11px}.bar{height:7px;flex:1;overflow:hidden;border-radius:4px;background:#e1e5e8}.fill{height:100%;background:#43a85e}.fill.bad{background:#c18a18}.pct{width:34px;text-align:right;font-size:11px;font-weight:700}
-    .stats{margin-top:6px;color:#69727c;font-size:10px}.stats span:last-child{margin-left:auto}.detail{margin-top:7px;padding:6px 8px;border-top:1px solid #e4e7ea;color:#323941;font-size:11px;overflow-wrap:anywhere}.empty{padding:34px 10px;text-align:center;color:#69727c}
-    .pool-list{display:grid;gap:7px;padding-top:10px}.pool{padding:11px;background:#fff;border:1px solid #d8dde3;border-radius:6px}.pool-head,.pool-foot{display:flex;align-items:center;gap:8px}.pool-head strong{font-size:13px}.pool-head span{margin-left:auto;color:#69727c;font-size:10px}.pool .bar{margin:9px 0 6px}.pool-foot{color:#69727c;font-size:10px}.pool-foot span:last-child{margin-left:auto}
-    footer{margin-top:14px;color:#747d87;font-size:10px;line-height:1.5}
-    @media(max-width:430px){.panel{padding:14px 12px}.metric{padding:10px}.sync{display:none}}
+    .panel{width:min(420px,100%);min-height:100vh;margin:auto;padding:12px;background:#f7f8f9;box-shadow:0 8px 28px rgba(35,42,50,.14)}
+    header{display:flex;align-items:flex-start;gap:8px;padding:2px 1px 9px;border-bottom:1px solid #d7dce1}
+    h1{margin:0;font-size:17px;line-height:1.2}.sub{margin-top:3px;color:#68717b;font-size:11px}
+    .status{margin-left:auto;display:flex;align-items:center;gap:5px;color:#287148;font-size:11px;white-space:nowrap}.dot{width:7px;height:7px;border-radius:50%;background:#39a46a}
+    .view-tabs{display:flex;justify-content:center;gap:3px;padding:8px 0;border-bottom:1px solid #d7dce1}.view-tabs button{min-width:72px;border:0;border-radius:5px;background:transparent;padding:5px 14px;cursor:pointer}.view-tabs button.active{background:#20272e;color:#fff}
+    .metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;padding:8px 0}
+    .metric{min-width:0;padding:7px 8px;background:#fff;border:1px solid #d9dee3;border-radius:5px}.metric span{display:block;overflow:hidden;color:#69727c;font-size:9px;white-space:nowrap;text-overflow:ellipsis}.metric strong{display:block;margin-top:2px;font-size:16px}.healthy{color:#287148}.warn{color:#a26012}
+    .section-label{display:flex;align-items:center;margin:1px 1px 6px;color:#69727c;font-size:10px}.section-label strong{color:#303840;font-size:11px}.section-label span{margin-left:auto}
+    .toolbar{display:flex;align-items:center;gap:6px;padding:7px 0;border-bottom:1px solid #d7dce1}.tabs{display:flex;border:1px solid #cbd2d9;border-radius:5px;overflow:hidden}.tabs button{padding:5px 10px;border:0;border-right:1px solid #cbd2d9;background:#fff;cursor:pointer;font-size:11px}.tabs button:last-child{border:0}.tabs button.active{background:#20272e;color:#fff}.sync{margin-left:auto;color:#69727c;font-size:9px}
+    .list,.pool-list{display:grid;gap:5px;padding-top:7px}.account,.pool{background:#fff;border:1px solid #d8dde2;border-radius:5px}.account{padding:7px 8px;border-left:3px solid #75808a}.account.focus{border-left-color:#bd8111}.head{display:flex;align-items:flex-start;gap:7px}.identity{min-width:0;flex:1}.name-button{max-width:100%;border:0;background:transparent;padding:0;color:#171b20;font-size:12px;font-weight:700;cursor:pointer;text-align:left;overflow-wrap:anywhere}.name-button:hover{text-decoration:underline}.meta{margin-top:2px;color:#69727c;font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .focus-button{width:22px;height:22px;padding:0;border:0;background:transparent;color:#89929b;font-size:16px;line-height:22px;cursor:pointer}.focus-button.active{color:#bd8111}.state{display:flex;align-items:center;gap:4px;padding-top:2px;color:#287148;font-size:10px;white-space:nowrap}.state.bad{color:#a26012}.signal{display:inline-flex;height:11px;align-items:flex-end;gap:1px}.signal i{display:block;width:2px;background:currentColor;border-radius:1px}.signal i:nth-child(1){height:3px}.signal i:nth-child(2){height:6px}.signal i:nth-child(3){height:9px}
+    .quota{display:grid;grid-template-columns:36px minmax(0,1fr) 34px 66px;align-items:center;gap:6px;margin-top:7px}.quota-label{font-size:10px;font-weight:600}.bar{height:6px;overflow:hidden;border-radius:3px;background:#e2e6e9}.fill{height:100%;background:#3c9a61}.fill.warn{background:#bd8111}.fill.bad{background:#bd4c43}.pct{text-align:right;font-size:10px;font-weight:700}.reset{text-align:right;color:#69727c;font-size:9px;white-space:nowrap}
+    .card-foot{display:flex;align-items:center;gap:7px;margin-top:5px;color:#707983;font-size:9px}.health-stars{color:#39905c;white-space:nowrap}.card-foot span:last-child{margin-left:auto}.detail{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 12px;margin:7px -1px -1px;padding:7px 1px 1px;border-top:1px solid #e4e7ea}.detail-item{min-width:0;padding:3px 0}.detail-item.wide{grid-column:1/-1}.detail-label{display:block;color:#7b848d;font-size:8px}.detail-value{display:block;margin-top:1px;color:#2c343c;font-size:10px;overflow-wrap:anywhere}
+    .pool{padding:9px}.pool-head,.pool-foot,.pool-quota{display:flex;align-items:center;gap:7px}.pool-head strong{font-size:12px}.source-tag{margin-left:auto;padding:2px 5px;border-radius:3px;background:#eef1f3;color:#68717b;font-size:8px}.pool-quota{margin-top:8px}.pool-quota span{font-size:10px}.pool-quota strong{margin-left:auto;font-size:12px}.pool .bar{margin:6px 0}.pool-foot{color:#68717b;font-size:9px}.pool-foot span:last-child{margin-left:auto;text-align:right}.empty{padding:30px 8px;text-align:center;color:#69727c;font-size:11px}
+    footer{margin-top:11px;padding:0 1px;color:#747d87;font-size:9px;line-height:1.45}
+    @media(max-width:380px){.panel{padding:10px}.quota{grid-template-columns:32px minmax(0,1fr) 31px 58px;gap:4px}.detail{grid-template-columns:1fr}.detail-item.wide{grid-column:auto}.sync{display:none}}
   </style>
 </head>
 <body>
 <main class="panel">
-  <header><div><h1>Sub2 账号池</h1><div class="sub">有效账号 · 手动关注 · 只读脱敏</div></div><div class="status" id="status"><span class="dot"></span>连接中</div></header>
+  <header><div><h1>Sub2 账号池</h1><div class="sub">原生额度 · 正常账号清单</div></div><div class="status" id="status"><span class="dot"></span>连接中</div></header>
   <nav class="view-tabs" aria-label="看板页面"><button class="active" data-view="overview">总览</button><button data-view="accounts">账号</button></nav>
   <section id="overview-view">
     <section class="metrics" id="metrics"></section>
-    <section class="pool-list" id="pools"><div class="empty">正在读取重点池</div></section>
+    <div class="section-label"><strong>重点账号池</strong><span>上游原生周限</span></div>
+    <section class="pool-list" id="pools"><div class="empty">正在读取原生额度</div></section>
   </section>
   <section id="accounts-view" hidden>
     <section class="toolbar">
-      <div class="tabs" aria-label="账号筛选"><button class="active" data-filter="all">全部</button><button data-filter="focus">关注</button><button data-filter="attention">异常</button></div>
+      <div class="tabs" aria-label="账号筛选"><button class="active" data-filter="all">全部</button><button data-filter="focus">关注</button><button data-filter="tight">周限紧张</button></div>
       <div class="sync" id="sync">实际数据</div>
     </section>
     <section class="list" id="list"><div class="empty">正在读取 Sub2 数据</div></section>
   </section>
-  <footer>24h 健康度根据实际请求与错误聚合计算。页面不读取或返回 Token、密码、credentials、extra。</footer>
+  <footer>清单来自 Sub2 当前正常且可调度账号；5H、7D 与镜像周限来自上游额度缓存，不是 Sub2 分组预算。关注标记只保存在本机。</footer>
 </main>
 <script>
   let accounts=[],pools=[],summary=null,filter="all";
@@ -50,46 +49,98 @@
   const accountDetails=new Map();
   const escapeHTML=value=>String(value??"").replace(/[&<>"']/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
   const metric=(label,value,color="")=>`<div class="metric"><span>${label}</span><strong class="${color}">${value}</strong></div>`;
+  const clamp=value=>Math.max(0,Math.min(100,Number(value)||0));
+  const hasNumber=value=>value!==null&&value!==undefined&&Number.isFinite(Number(value));
+  const formatNumber=value=>Number(value).toLocaleString("zh-CN",{maximumFractionDigits:1});
+  function quotaUsed(account){
+    if(hasNumber(account.weekly_used_percent))return clamp(account.weekly_used_percent);
+    if(hasNumber(account.weekly_limit)&&Number(account.weekly_limit)>0&&hasNumber(account.weekly_usage))return clamp(Number(account.weekly_usage)/Number(account.weekly_limit)*100);
+    return null;
+  }
+  function resetText(value){
+    if(!value)return "恢复暂无";
+    const target=new Date(value);if(Number.isNaN(target.getTime()))return "恢复暂无";
+    const diff=target-Date.now();if(diff<=0)return "待恢复";
+    const hours=Math.floor(diff/3600000),days=Math.floor(hours/24),rest=hours%24;
+    return days>0?`${days}天${rest}小时`:`${Math.max(1,hours)}小时`;
+  }
+  function exactTime(value){
+    if(!value)return "暂无数据";const date=new Date(value);if(Number.isNaN(date.getTime()))return escapeHTML(value);
+    return date.toLocaleString("zh-CN",{month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false});
+  }
+  function healthScore(account){
+    if(!account.valid)return 1;
+    const health=String(account.ops_health||"").toLowerCase();
+    if(/critical|unhealthy|failed|error/.test(health))return 2;
+    if(/degraded|warning|warn|limited/.test(health))return 3;
+    const requests=Number(account.recent_requests)||0,errors=Number(account.recent_errors)||0,total=requests+errors;
+    if(total>0&&errors/total>=.2)return 2;
+    if(total>0&&errors/total>=.05)return 3;
+    if(errors>0)return 4;
+    return 5;
+  }
+  function healthStars(account){const score=healthScore(account);return `<span class="health-stars" title="健康评估 ${score}/5">${"★".repeat(score)}${"☆".repeat(5-score)}</span>`}
+  function detailItem(label,value,wide=false){return `<div class="detail-item ${wide?"wide":""}"><span class="detail-label">${label}</span><span class="detail-value">${value}</span></div>`}
+  function detailHTML(account,detail){
+    const five=hasNumber(account.five_hour_used_percent)?`${Math.round(clamp(account.five_hour_used_percent))}% · ${resetText(account.five_hour_reset_at)}`:"暂无数据";
+    const weekly=quotaUsed(account),weeklyValue=weekly===null?"暂无数据":`${Math.round(weekly)}% 已用 · ${resetText(account.weekly_reset_at)}`;
+    const activity=`${(account.recent_requests||0).toLocaleString()} 请求 · ${account.recent_errors||0} 错误`;
+    return `<div class="detail">
+      ${detailItem("账号名称",escapeHTML(detail.display_name),true)}
+      ${detailItem("5H",five)}${detailItem("7D / 周限",weeklyValue)}
+      ${detailItem("绑定分组",escapeHTML((account.groups||[]).join(" · ")||"未分组"),true)}
+      ${detailItem("授权类型",escapeHTML(account.authorization_type||"暂无"))}${detailItem("套餐",escapeHTML(account.plan||"暂无"))}
+      ${detailItem("重置次数","暂无数据")}${detailItem("额度更新",exactTime(account.usage_updated_at))}
+      ${detailItem("最后使用",exactTime(account.last_used_at))}${detailItem("24h 活动",activity)}
+      ${account.rate_limit_reset_at?detailItem("限流恢复",exactTime(account.rate_limit_reset_at),true):""}
+    </div>`;
+  }
   function render(){
-    const valid=summary?.valid_accounts??accounts.filter(a=>a.valid).length;
-    const attention=accounts.filter(a=>(a.recent_errors||0)>0).length;
-    const requests=accounts.reduce((sum,a)=>sum+(a.recent_requests||0),0);
-    const errors=accounts.reduce((sum,a)=>sum+(a.recent_errors||0),0);
-    const success=requests+errors?Math.round(requests/(requests+errors)*100):100;
-    document.querySelector("#metrics").innerHTML=metric("24h 请求",requests.toLocaleString())+metric("成功率",`${success}%`,success>=95?"healthy":"warn")+metric("有效账号",valid,"healthy");
-    document.querySelector("#sync").textContent=`${accounts.length} 有效 · ${focusIDs.size} 关注`;
-    const sorted=[...accounts].sort((a,b)=>(Number(focusIDs.has(b.id))-Number(focusIDs.has(a.id)))||((b.priority||0)-(a.priority||0)));
-    const rows=sorted.filter(a=>filter==="all"||(filter==="focus"&&focusIDs.has(a.id))||(filter==="attention"&&(a.recent_errors||0)>0));
-    document.querySelector("#list").innerHTML=rows.length?rows.map(a=>{
-      const requests=a.recent_requests||0,errors=a.recent_errors||0;
-      const health=requests+errors?Math.round(requests/(requests+errors)*100):(a.valid?100:0);
-      const focused=focusIDs.has(a.id);
-      const detail=accountDetails.get(a.id);
-      return `<article class="account ${focused?"focus":""} ${errors?"attention":""}">
-        <div class="head"><div><button class="name-button" data-detail-id="${a.id}" aria-label="展开账号名称">${escapeHTML(a.display_name||a.email_masked)} ▾</button><div class="meta">${escapeHTML((a.plan||a.provider).toUpperCase())} · ${escapeHTML((a.groups||[]).join(" · "))}</div></div><button class="focus-button ${focused?"active":""}" data-focus-id="${a.id}" title="${focused?"取消关注":"设为关注"}" aria-label="${focused?"取消关注":"设为关注"}">${focused?"★":"☆"}</button><div class="state">↻ 可调度</div></div>
-        ${detail?`<div class="detail">${escapeHTML(detail)}</div>`:""}
-        <div class="health"><span>24h 健康</span><div class="bar"><div class="fill ${health<90?"bad":""}" style="width:${health}%"></div></div><div class="pct">${health}%</div></div>
-        <div class="stats"><span>请求 ${requests.toLocaleString()} · 错误 ${errors}</span><span>优先级 ${a.priority||0}</span></div>
-      </article>`}).join(""):'<div class="empty">没有符合条件的账号</div>';
+    const normal=summary?.valid_accounts??accounts.filter(a=>a.valid).length;
+    const quotaReadable=accounts.filter(a=>quotaUsed(a)!==null).length;
+    document.querySelector("#metrics").innerHTML=metric("正常账号",normal,"healthy")+metric("周限可读",`${quotaReadable}/${accounts.length}`)+metric("手动关注",focusIDs.size,focusIDs.size?"warn":"");
+    document.querySelector("#sync").textContent=`${accounts.length} 个原生账号`;
+    const sorted=[...accounts].sort((a,b)=>(Number(focusIDs.has(b.id))-Number(focusIDs.has(a.id)))||String(a.display_name).localeCompare(String(b.display_name),"zh-CN"));
+    const rows=sorted.filter(a=>filter==="all"||(filter==="focus"&&focusIDs.has(a.id))||(filter==="tight"&&quotaUsed(a)!==null&&quotaUsed(a)>=90));
+    document.querySelector("#list").innerHTML=rows.length?rows.map(account=>{
+      const focused=focusIDs.has(account.id),detail=accountDetails.get(account.id),used=quotaUsed(account);
+      const barClass=used!==null&&used>=90?"bad":used!==null&&used>=70?"warn":"";
+      const label=hasNumber(account.weekly_limit)?"周限":"7D";
+      const plan=String(account.plan||account.provider||"未知").toUpperCase();
+      return `<article class="account ${focused?"focus":""}">
+        <div class="head"><div class="identity"><button class="name-button" data-detail-id="${account.id}" title="展开账号详情">${escapeHTML(detail?.display_name||account.display_name||account.email_masked)} ${detail?"⌃":"⌄"}</button><div class="meta">${escapeHTML(plan)} · ${escapeHTML((account.groups||[]).join(" · ")||"未分组")}</div></div><button class="focus-button ${focused?"active":""}" data-focus-id="${account.id}" title="${focused?"取消关注":"设为关注"}" aria-label="${focused?"取消关注":"设为关注"}">${focused?"★":"☆"}</button><div class="state ${account.valid?"":"bad"}" title="${account.valid?"当前状态正常且可调度":"当前不可调度"}"><span class="signal"><i></i><i></i><i></i></span>${account.valid?"正常":"异常"}</div></div>
+        <div class="quota"><span class="quota-label">${label}</span><div class="bar"><div class="fill ${barClass}" style="width:${used===null?0:used}%"></div></div><span class="pct">${used===null?"--":`${Math.round(used)}%`}</span><span class="reset" title="${escapeHTML(account.weekly_reset_at||"")}">${resetText(account.weekly_reset_at)}</span></div>
+        <div class="card-foot"><span>健康 ${healthStars(account)}</span><span>${escapeHTML(account.authorization_type||"未知授权")}</span></div>
+        ${detail?detailHTML(account,detail):""}
+      </article>`;
+    }).join(""):'<div class="empty">没有符合条件的账号</div>';
     document.querySelectorAll("[data-focus-id]").forEach(button=>button.addEventListener("click",()=>{const id=button.dataset.focusId;focusIDs.has(id)?focusIDs.delete(id):focusIDs.add(id);localStorage.setItem("sub2FocusIDs",JSON.stringify([...focusIDs]));render()}));
-    document.querySelectorAll("[data-detail-id]").forEach(button=>button.addEventListener("click",async()=>{const id=button.dataset.detailId;if(accountDetails.has(id)){accountDetails.delete(id);render();return}button.disabled=true;try{const response=await fetch(`/api/accounts/${id}`);if(!response.ok)throw new Error();accountDetails.set(id,(await response.json()).display_name);render()}catch{button.disabled=false}}));
+    document.querySelectorAll("[data-detail-id]").forEach(button=>button.addEventListener("click",async()=>{const id=button.dataset.detailId;if(accountDetails.has(id)){accountDetails.delete(id);render();return}button.disabled=true;try{const response=await fetch(`/api/accounts/${id}`);if(!response.ok)throw new Error();accountDetails.set(id,await response.json());render()}catch{button.disabled=false}}));
   }
   function renderPools(){
-    const labels={"12":"福CCC综合","13":"0703车队 20X"};
-    document.querySelector("#pools").innerHTML=pools.map(pool=>{const used=pool.weekly_usage_usd||0,limit=pool.weekly_limit_usd||0;const percent=limit?Math.min(100,Math.round(used/limit*100)):0;const remaining=Math.max(0,limit-used);return `<article class="pool"><div class="pool-head"><strong>${escapeHTML(labels[pool.id]||pool.name)}</strong><span>${pool.accounts} 个已挂载账号</span></div><div class="bar"><div class="fill ${percent>=90?"bad":""}" style="width:${percent}%"></div></div><div class="pool-foot"><span>本周已用 $${used.toFixed(2)} / $${limit.toFixed(2)}</span><span>剩余 $${remaining.toFixed(2)} · ${100-percent}%</span></div></article>`}).join("")||'<div class="empty">暂无重点池预算</div>';
+    document.querySelector("#pools").innerHTML=pools.map(pool=>{
+      const used=hasNumber(pool.weekly_used_percent)?clamp(pool.weekly_used_percent):null;
+      const barClass=used!==null&&used>=90?"bad":used!==null&&used>=70?"warn":"";
+      const source=pool.id==="0703"?"原生 7D":"2 个镜像号";
+      let left="额度暂无",right=pool.weekly_reset_at?`恢复 ${resetText(pool.weekly_reset_at)}`:"恢复时间暂无";
+      if(hasNumber(pool.weekly_limit)&&hasNumber(pool.weekly_usage)){
+        const remaining=Math.max(0,Number(pool.weekly_limit)-Number(pool.weekly_usage));
+        left=`已用 ${formatNumber(pool.weekly_usage)} / ${formatNumber(pool.weekly_limit)}`;
+        right=`剩余 ${formatNumber(remaining)}`;
+      }else if(used!==null){left=`本周已用 ${Math.round(used)}%`;}
+      return `<article class="pool"><div class="pool-head"><strong>${escapeHTML(pool.name)}</strong><span class="source-tag">${source}</span></div><div class="pool-quota"><span>周限已用</span><strong>${used===null?"--":`${Math.round(used)}%`}</strong></div><div class="bar"><div class="fill ${barClass}" style="width:${used===null?0:used}%"></div></div><div class="pool-foot"><span>${left}</span><span title="${escapeHTML(pool.weekly_reset_at||"")}">${right}</span></div></article>`;
+    }).join("")||'<div class="empty">暂无重点账号池额度</div>';
   }
   document.querySelectorAll("[data-view]").forEach(button=>button.addEventListener("click",()=>{document.querySelectorAll("[data-view]").forEach(item=>item.classList.toggle("active",item===button));document.querySelector("#overview-view").hidden=button.dataset.view!=="overview";document.querySelector("#accounts-view").hidden=button.dataset.view!=="accounts"}));
   document.querySelectorAll("[data-filter]").forEach(button=>button.addEventListener("click",()=>{filter=button.dataset.filter;document.querySelectorAll("[data-filter]").forEach(item=>item.classList.toggle("active",item===button));render()}));
   async function load(){
     try{
-      const [s,a,p]=await Promise.all([fetch("/api/summary"),fetch("/api/accounts"),fetch("/api/pools")]);
-      if(!s.ok||!a.ok||!p.ok)throw new Error();
+      const [s,a,p]=await Promise.all([fetch("/api/summary"),fetch("/api/accounts"),fetch("/api/pools")]);if(!s.ok||!a.ok||!p.ok)throw new Error();
       summary=await s.json();accounts=(await a.json()).accounts;pools=(await p.json()).pools;
-      document.querySelector("#status").innerHTML='<span class="dot"></span>Bridge 在线';
-      render();renderPools();
-    }catch{document.querySelector("#status").innerHTML='<span class="dot" style="background:#b36b1e"></span>连接失败';document.querySelector("#list").innerHTML='<div class="empty">暂时无法读取 Sub2 数据</div>'}
+      document.querySelector("#status").innerHTML='<span class="dot"></span>Bridge 在线';render();renderPools();
+    }catch{document.querySelector("#status").innerHTML='<span class="dot" style="background:#b36b1e"></span>连接失败';document.querySelector("#list").innerHTML='<div class="empty">暂时无法读取 Sub2 数据</div>';}
   }
-  load();
+  load();setInterval(load,60000);
 </script>
 </body>
 </html>

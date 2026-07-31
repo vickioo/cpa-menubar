@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -17,8 +18,7 @@ import (
 const sub2AccountsQuery = `
 WITH group_data AS (
   SELECT ag.account_id,
-         array_agg(g.name::text ORDER BY g.name) AS group_names,
-         array_agg(ag.group_id::text ORDER BY ag.group_id) AS group_ids
+         array_agg(g.name::text ORDER BY g.name) AS group_names
   FROM account_groups ag
   JOIN groups g ON g.id = ag.group_id
   GROUP BY ag.account_id
@@ -33,48 +33,45 @@ WITH group_data AS (
   WHERE created_at >= now() - interval '24 hours' AND account_id IS NOT NULL
   GROUP BY account_id
 )
-SELECT a.id, a.name, a.platform, a.type, a.status, a.schedulable, a.priority,
+SELECT a.id, a.name, a.platform, a.type, a.status, a.schedulable,
        a.expires_at, a.last_used_at, a.temp_unschedulable_until,
-	       coalesce(array_to_json(gd.group_names), '[]'::json) AS group_names,
-	       coalesce(array_to_json(gd.group_ids), '[]'::json) AS group_ids,
+       coalesce(array_to_json(gd.group_names), '[]'::json) AS group_names,
        coalesce(ru.requests, 0), coalesce(re.errors, 0),
-       coalesce(a.notes, '')
+       u.plan_type, u.five_hour_used_percent, u.five_hour_reset_at,
+       u.weekly_used_percent, u.weekly_reset_at,
+       u.weekly_limit, u.weekly_usage, u.usage_updated_at,
+       u.rate_limit_reset_at, u.ops_health
 FROM accounts a
 LEFT JOIN group_data gd ON gd.account_id = a.id
 LEFT JOIN recent_usage ru ON ru.account_id = a.id
 LEFT JOIN recent_errors re ON re.account_id = a.id
+LEFT JOIN cpa_desktop_account_usage u ON u.account_id = a.id
 WHERE a.deleted_at IS NULL
-ORDER BY a.priority DESC, a.id`
+ORDER BY a.id`
 
-const sub2PoolsQuery = `
-WITH account_counts AS (
-  SELECT group_id, count(DISTINCT account_id)::bigint AS accounts
-  FROM account_groups
-  GROUP BY group_id
-), weekly_usage AS (
-  SELECT group_id, coalesce(sum(actual_cost), 0)::double precision AS usage
-  FROM usage_logs
-  WHERE created_at >= date_trunc('week', now()) AND group_id IS NOT NULL
-  GROUP BY group_id
-)
-SELECT g.id::text, g.name, coalesce(ac.accounts, 0),
-       coalesce(g.weekly_limit_usd, 0)::double precision,
-       coalesce(wu.usage, 0)
-FROM groups g
-LEFT JOIN account_counts ac ON ac.group_id = g.id
-LEFT JOIN weekly_usage wu ON wu.group_id = g.id
-WHERE g.id IN (12, 13)
-ORDER BY g.id`
+const sub2NativeUsageQuery = `
+SELECT plan_type, five_hour_used_percent, five_hour_reset_at,
+       weekly_used_percent, weekly_reset_at, weekly_limit, weekly_usage,
+       usage_updated_at, rate_limit_reset_at, ops_health
+FROM cpa_desktop_account_usage
+WHERE account_id = $1`
 
 type sub2AccountRow struct {
 	id                                            int64
 	name, platform, accountType, status           string
 	schedulable                                   bool
-	priority                                      int
 	expiresAt, lastUsedAt, tempUnschedulableUntil sql.NullTime
-	groupNames, groupIDs                          []string
+	groupNames                                    []string
 	recentRequests, recentErrors                  int64
-	notes                                         string
+	native                                        sub2NativeUsage
+}
+
+type sub2NativeUsage struct {
+	planType                                    sql.NullString
+	fiveHourUsed, weeklyUsed                    sql.NullFloat64
+	fiveHourResetAt, weeklyResetAt              sql.NullString
+	weeklyLimit, weeklyUsage                    sql.NullFloat64
+	usageUpdatedAt, rateLimitResetAt, opsHealth sql.NullString
 }
 
 func (s *Server) loadSub2Accounts(ctx context.Context) ([]Account, error) {
@@ -90,20 +87,21 @@ func (s *Server) loadSub2Accounts(ctx context.Context) ([]Account, error) {
 	accounts := make([]Account, 0)
 	for rows.Next() {
 		var row sub2AccountRow
-		var groupNamesJSON, groupIDsJSON []byte
+		var groupNamesJSON []byte
 		if err := rows.Scan(&row.id, &row.name, &row.platform, &row.accountType, &row.status,
-			&row.schedulable, &row.priority, &row.expiresAt, &row.lastUsedAt,
-			&row.tempUnschedulableUntil, &groupNamesJSON, &groupIDsJSON,
-			&row.recentRequests, &row.recentErrors, &row.notes); err != nil {
+			&row.schedulable, &row.expiresAt, &row.lastUsedAt,
+			&row.tempUnschedulableUntil, &groupNamesJSON,
+			&row.recentRequests, &row.recentErrors,
+			&row.native.planType, &row.native.fiveHourUsed, &row.native.fiveHourResetAt,
+			&row.native.weeklyUsed, &row.native.weeklyResetAt,
+			&row.native.weeklyLimit, &row.native.weeklyUsage, &row.native.usageUpdatedAt,
+			&row.native.rateLimitResetAt, &row.native.opsHealth); err != nil {
 			return nil, err
 		}
 		if err := json.Unmarshal(groupNamesJSON, &row.groupNames); err != nil {
 			return nil, fmt.Errorf("decode Sub2 group names: %w", err)
 		}
-		if err := json.Unmarshal(groupIDsJSON, &row.groupIDs); err != nil {
-			return nil, fmt.Errorf("decode Sub2 group IDs: %w", err)
-		}
-		account, include := sub2AccountFromRow(row, s.cfg, time.Now())
+		account, include := sub2AccountFromRow(row, time.Now())
 		if include {
 			accounts = append(accounts, account)
 		}
@@ -139,43 +137,105 @@ func (s *Server) handleSub2AccountDetail(w http.ResponseWriter, r *http.Request)
 }
 
 func (s *Server) handleSub2Pools(w http.ResponseWriter, r *http.Request) {
-	rows, err := s.db.QueryContext(r.Context(), sub2PoolsQuery)
+	pools := make([]PoolSummary, 0, 2)
+
+	usage0703, found, err := s.loadSub2NativeUsage(r.Context(), int64(s.cfg.Sub2Target0703ID))
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to read Sub2 pool summary")
 		return
 	}
-	defer rows.Close()
-	pools := make([]PoolSummary, 0, 2)
-	for rows.Next() {
-		var pool PoolSummary
-		if err := rows.Scan(&pool.ID, &pool.Name, &pool.Accounts, &pool.WeeklyLimitUSD, &pool.WeeklyUsageUSD); err != nil {
+	pool0703 := PoolSummary{ID: "0703", Name: "0703车队 20X主账号"}
+	if found {
+		pool0703.Accounts = 1
+		pool0703.WeeklyUsedPercent = nullFloatPointer(usage0703.weeklyUsed)
+		pool0703.WeeklyResetAt = nullStringValue(usage0703.weeklyResetAt)
+	}
+	pools = append(pools, pool0703)
+
+	poolFu := PoolSummary{ID: "fuccc", Name: "福CCC 双镜像综合"}
+	var limit, used float64
+	var hasLimit, hasUsed bool
+	for _, rawID := range s.cfg.Sub2TargetFuIDs {
+		id, parseErr := strconv.ParseInt(rawID, 10, 64)
+		if parseErr != nil {
+			continue
+		}
+		usage, exists, loadErr := s.loadSub2NativeUsage(r.Context(), id)
+		if loadErr != nil {
 			writeError(w, http.StatusInternalServerError, "failed to read Sub2 pool summary")
 			return
 		}
-		pools = append(pools, pool)
+		if !exists {
+			continue
+		}
+		poolFu.Accounts++
+		if usage.weeklyLimit.Valid {
+			limit += usage.weeklyLimit.Float64
+			hasLimit = true
+		}
+		if usage.weeklyUsage.Valid {
+			used += usage.weeklyUsage.Float64
+			hasUsed = true
+		}
 	}
-	if err := rows.Err(); err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to read Sub2 pool summary")
-		return
+	if hasLimit {
+		poolFu.WeeklyLimit = &limit
 	}
+	if hasUsed {
+		poolFu.WeeklyUsage = &used
+	}
+	if hasLimit && limit > 0 {
+		percent := used / limit * 100
+		poolFu.WeeklyUsedPercent = &percent
+	}
+	pools = append(pools, poolFu)
+
 	writeJSON(w, http.StatusOK, PoolsResponse{GeneratedAt: time.Now(), Pools: pools})
 }
 
-func sub2AccountFromRow(row sub2AccountRow, cfg Config, now time.Time) (Account, bool) {
+func (s *Server) loadSub2NativeUsage(ctx context.Context, accountID int64) (sub2NativeUsage, bool, error) {
+	var usage sub2NativeUsage
+	err := s.db.QueryRowContext(ctx, sub2NativeUsageQuery, accountID).Scan(
+		&usage.planType, &usage.fiveHourUsed, &usage.fiveHourResetAt,
+		&usage.weeklyUsed, &usage.weeklyResetAt, &usage.weeklyLimit, &usage.weeklyUsage,
+		&usage.usageUpdatedAt, &usage.rateLimitResetAt, &usage.opsHealth,
+	)
+	if err == sql.ErrNoRows {
+		return sub2NativeUsage{}, false, nil
+	}
+	if err != nil {
+		return sub2NativeUsage{}, false, err
+	}
+	return usage, true, nil
+}
+
+func sub2AccountFromRow(row sub2AccountRow, now time.Time) (Account, bool) {
 	valid := row.status == "active" && row.schedulable &&
 		(!row.expiresAt.Valid || row.expiresAt.Time.After(now)) &&
 		(!row.tempUnschedulableUntil.Valid || !row.tempUnschedulableUntil.Time.After(now))
-	focus := row.priority >= cfg.Sub2FocusPriority || containsFocusMarker(row.notes) || intersects(row.groupIDs, cfg.Sub2FocusGroupIDs)
-	if !valid && !focus {
+	if !valid {
 		return Account{}, false
 	}
 
+	plan := row.accountType
+	if row.native.planType.Valid && strings.TrimSpace(row.native.planType.String) != "" {
+		plan = row.native.planType.String
+	}
 	account := Account{
 		ID: sub2PublicID(row.id), Provider: "codex", Source: "sub2",
-		DisplayName: maskIdentifier(row.name), Plan: row.accountType,
-		Disabled: !row.schedulable, Status: row.status, Schedulable: row.schedulable,
-		Valid: valid, Focus: focus, Priority: row.priority, Groups: row.groupNames,
-		UsageStatus: "ok", RecentRequests: row.recentRequests, RecentErrors: row.recentErrors,
+		DisplayName: maskIdentifier(row.name), Plan: plan, AuthorizationType: row.accountType,
+		Disabled: false, Status: row.status, Schedulable: true, Valid: true,
+		Groups: row.groupNames, UsageStatus: "ok",
+		RecentRequests: row.recentRequests, RecentErrors: row.recentErrors,
+		FiveHourUsed:     nullFloatPointer(row.native.fiveHourUsed),
+		FiveHourResetAt:  nullStringValue(row.native.fiveHourResetAt),
+		WeeklyUsed:       nullFloatPointer(row.native.weeklyUsed),
+		WeeklyResetAt:    nullStringValue(row.native.weeklyResetAt),
+		WeeklyLimit:      nullFloatPointer(row.native.weeklyLimit),
+		WeeklyUsage:      nullFloatPointer(row.native.weeklyUsage),
+		UsageUpdatedAt:   nullStringValue(row.native.usageUpdatedAt),
+		RateLimitResetAt: nullStringValue(row.native.rateLimitResetAt),
+		OpsHealth:        nullStringValue(row.native.opsHealth),
 	}
 	if row.expiresAt.Valid {
 		account.ExpiredAt = row.expiresAt.Time.UTC().Format(time.RFC3339)
@@ -183,33 +243,30 @@ func sub2AccountFromRow(row sub2AccountRow, cfg Config, now time.Time) (Account,
 	if row.lastUsedAt.Valid {
 		account.LastUsedAt = row.lastUsedAt.Time.UTC().Format(time.RFC3339)
 	}
-	if row.recentErrors > 0 || !valid {
+	if row.recentErrors > 0 {
 		account.UsageStatus = "attention"
 	}
 	return account, true
 }
 
+func nullFloatPointer(value sql.NullFloat64) *float64 {
+	if !value.Valid {
+		return nil
+	}
+	result := value.Float64
+	return &result
+}
+
+func nullStringValue(value sql.NullString) string {
+	if !value.Valid {
+		return ""
+	}
+	return value.String
+}
+
 func sub2PublicID(id int64) string {
 	digest := sha256.Sum256([]byte(fmt.Sprintf("sub2:%d", id)))
 	return hex.EncodeToString(digest[:])[:12]
-}
-
-func containsFocusMarker(notes string) bool {
-	lower := strings.ToLower(notes)
-	return strings.Contains(lower, "[focus]") || strings.Contains(lower, "[重点]")
-}
-
-func intersects(values, wanted []string) bool {
-	set := make(map[string]struct{}, len(wanted))
-	for _, value := range wanted {
-		set[value] = struct{}{}
-	}
-	for _, value := range values {
-		if _, ok := set[value]; ok {
-			return true
-		}
-	}
-	return false
 }
 
 func maskIdentifier(value string) string {

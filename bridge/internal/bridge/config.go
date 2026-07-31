@@ -25,8 +25,8 @@ type Config struct {
 	OAuthTimeout         time.Duration
 	AccountSource        string
 	Sub2DatabaseURL      string
-	Sub2FocusPriority    int
-	Sub2FocusGroupIDs    []string
+	Sub2Target0703ID     int
+	Sub2TargetFuIDs      []string
 }
 
 func LoadConfig() (Config, error) {
@@ -47,8 +47,8 @@ func LoadConfig() (Config, error) {
 		OAuthTimeout:         5 * time.Minute,
 		AccountSource:        strings.ToLower(envOr("CPA_ACCOUNT_SOURCE", "files")),
 		Sub2DatabaseURL:      strings.TrimSpace(os.Getenv("SUB2_DATABASE_URL")),
-		Sub2FocusPriority:    envIntOr("SUB2_FOCUS_PRIORITY", 80),
-		Sub2FocusGroupIDs:    splitCSV(os.Getenv("SUB2_FOCUS_GROUP_IDS")),
+		Sub2Target0703ID:     envIntOr("SUB2_TARGET_0703_ACCOUNT_ID", 20),
+		Sub2TargetFuIDs:      splitCSV(envOr("SUB2_TARGET_FU_ACCOUNT_IDS", "2,24")),
 	}
 
 	if cfg.DesktopToken == "" && cfg.DesktopTokenFile != "" {

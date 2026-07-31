@@ -65,18 +65,26 @@ function Update-TraySummary {
     $summary = Invoke-RestMethod "http://127.0.0.1:8765/api/summary"
     $accountResponse = Invoke-RestMethod "http://127.0.0.1:8765/api/accounts"
     $poolResponse = Invoke-RestMethod "http://127.0.0.1:8765/api/pools"
-    $requests = ($accountResponse.accounts | Measure-Object -Property recent_requests -Sum).Sum
-    $errors = ($accountResponse.accounts | Measure-Object -Property recent_errors -Sum).Sum
-    $success = if (($requests + $errors) -gt 0) { [math]::Round($requests / ($requests + $errors) * 100) } else { 100 }
+    $quotaReadable = @($accountResponse.accounts | Where-Object { $null -ne $_.weekly_used_percent }).Count
     $validItem.Text = "有效账号：$($summary.valid_accounts)"
-    $usageItem.Text = "24h 请求：$requests · 成功率：$success%"
+    $usageItem.Text = "原生周限：$quotaReadable / $(@($accountResponse.accounts).Count) 个可读"
     foreach ($pool in $poolResponse.pools) {
-        $remaining = [math]::Max(0, $pool.weekly_limit_usd - $pool.weekly_usage_usd)
-        $percent = if ($pool.weekly_limit_usd -gt 0) { [math]::Round($remaining / $pool.weekly_limit_usd * 100) } else { 0 }
-        if ($pool.id -eq "13") { $pool0703Item.Text = "0703 20X：剩余 $percent%（" + '$' + "$([math]::Round($remaining, 2))）" }
-        if ($pool.id -eq "12") { $poolFuItem.Text = "福CCC：剩余 $percent%（" + '$' + "$([math]::Round($remaining, 2))）" }
+        $usedPercent = if ($null -ne $pool.weekly_used_percent) { [math]::Round($pool.weekly_used_percent) } else { $null }
+        $remainingPercent = if ($null -ne $usedPercent) { [math]::Max(0, 100 - $usedPercent) } else { $null }
+        if ($pool.id -eq "0703") {
+            $reset = if ($pool.weekly_reset_at) { ([datetimeoffset]::Parse($pool.weekly_reset_at)).ToLocalTime().ToString("MM-dd HH:mm") } else { "恢复时间暂无" }
+            $pool0703Item.Text = if ($null -ne $remainingPercent) { "0703 20X：7D剩余 $remainingPercent% · $reset" } else { "0703 20X：额度暂无" }
+        }
+        if ($pool.id -eq "fuccc") {
+            if ($null -ne $pool.weekly_limit -and $null -ne $pool.weekly_usage) {
+                $remaining = [math]::Max(0, $pool.weekly_limit - $pool.weekly_usage)
+                $poolFuItem.Text = "福CCC：综合剩余 $([math]::Round($remaining, 1)) / $([math]::Round($pool.weekly_limit, 1))"
+            } else {
+                $poolFuItem.Text = "福CCC：额度暂无"
+            }
+        }
     }
-    $notifyIcon.Text = "Sub2 · $($summary.valid_accounts) 有效 · $success%"
+    $notifyIcon.Text = "Sub2 · $($summary.valid_accounts) 正常 · $quotaReadable 个周限可读"
 }
 
 try {
@@ -92,7 +100,7 @@ $openItem = $menu.Items.Add("打开看板")
 $refreshItem = $menu.Items.Add("重新连接")
 $menu.Items.Add("-") | Out-Null
 $validItem = $menu.Items.Add("有效账号：-")
-$usageItem = $menu.Items.Add("24h 请求：-")
+$usageItem = $menu.Items.Add("原生周限：-")
 $pool0703Item = $menu.Items.Add("0703 20X：加载中")
 $poolFuItem = $menu.Items.Add("福CCC：加载中")
 $validItem.Enabled = $false
