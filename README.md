@@ -66,6 +66,17 @@ bridge/deploy/deploy-sub2-docker.sh /path/to/cpa-menubar
 
 The script builds a static bridge, creates or rotates a column-restricted PostgreSQL reader, binds the service to `127.0.0.1:18330`, and joins the existing `sub2api_sub2api-network`. Review its network, container, database, and focus-group defaults before use.
 
+### Windows tray preview
+
+Run `preview/start-tray.vbs` or use the generated desktop shortcut. The tray process:
+
+- opens an SSH tunnel to the loopback-only bridge;
+- starts the local credential-hiding proxy on `127.0.0.1:8765`;
+- opens the dashboard on double-click;
+- provides reconnect and exit actions from its context menu.
+
+The dashboard only lists server-approved valid accounts. Stars are controlled manually and stored in the local browser profile; they do not write to Sub2. The automatic anomaly filter only considers recent errors among the returned valid accounts.
+
 ## Configuration
 
 Copy the example and replace every placeholder locally. Never commit the resulting file.

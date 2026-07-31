@@ -56,8 +56,8 @@ umask 077
   echo "CPA_DESKTOP_TOKEN=$desktop_token"
   echo "CPA_ACCOUNT_SOURCE=sub2"
   echo "SUB2_DATABASE_URL=postgres://cpa_desktop_reader:$reader_password@$postgres_container:5432/$db_name?sslmode=disable"
-  echo "SUB2_FOCUS_PRIORITY=4"
-  echo "SUB2_FOCUS_GROUP_IDS=2,8,9,12,13"
+  echo "SUB2_FOCUS_PRIORITY=999999"
+  echo "SUB2_FOCUS_GROUP_IDS="
 } > "$env_tmp"
 sudo install -m 0600 "$env_tmp" "$deploy_dir/bridge.env"
 
