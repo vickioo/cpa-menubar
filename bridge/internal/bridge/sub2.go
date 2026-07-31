@@ -45,14 +45,14 @@ WHERE a.deleted_at IS NULL
 ORDER BY a.priority DESC, a.id`
 
 type sub2AccountRow struct {
-	id int64
-	name, platform, accountType, status string
-	schedulable bool
-	priority int
+	id                                            int64
+	name, platform, accountType, status           string
+	schedulable                                   bool
+	priority                                      int
 	expiresAt, lastUsedAt, tempUnschedulableUntil sql.NullTime
-	groupNames, groupIDs []string
-	recentRequests, recentErrors int64
-	notes string
+	groupNames, groupIDs                          []string
+	recentRequests, recentErrors                  int64
+	notes                                         string
 }
 
 func (s *Server) loadSub2Accounts(ctx context.Context) ([]Account, error) {
@@ -60,7 +60,9 @@ func (s *Server) loadSub2Accounts(ctx context.Context) ([]Account, error) {
 		return nil, fmt.Errorf("Sub2 database is not configured")
 	}
 	rows, err := s.db.QueryContext(ctx, sub2AccountsQuery)
-	if err != nil { return nil, err }
+	if err != nil {
+		return nil, err
+	}
 	defer rows.Close()
 
 	accounts := make([]Account, 0)
@@ -69,9 +71,13 @@ func (s *Server) loadSub2Accounts(ctx context.Context) ([]Account, error) {
 		if err := rows.Scan(&row.id, &row.name, &row.platform, &row.accountType, &row.status,
 			&row.schedulable, &row.priority, &row.expiresAt, &row.lastUsedAt,
 			&row.tempUnschedulableUntil, &row.groupNames, &row.groupIDs,
-			&row.recentRequests, &row.recentErrors, &row.notes); err != nil { return nil, err }
+			&row.recentRequests, &row.recentErrors, &row.notes); err != nil {
+			return nil, err
+		}
 		account, include := sub2AccountFromRow(row, s.cfg, time.Now())
-		if include { accounts = append(accounts, account) }
+		if include {
+			accounts = append(accounts, account)
+		}
 	}
 	return accounts, rows.Err()
 }
@@ -81,7 +87,9 @@ func sub2AccountFromRow(row sub2AccountRow, cfg Config, now time.Time) (Account,
 		(!row.expiresAt.Valid || row.expiresAt.Time.After(now)) &&
 		(!row.tempUnschedulableUntil.Valid || !row.tempUnschedulableUntil.Time.After(now))
 	focus := row.priority >= cfg.Sub2FocusPriority || containsFocusMarker(row.notes) || intersects(row.groupIDs, cfg.Sub2FocusGroupIDs)
-	if !valid && !focus { return Account{}, false }
+	if !valid && !focus {
+		return Account{}, false
+	}
 
 	digest := sha256.Sum256([]byte(fmt.Sprintf("sub2:%d", row.id)))
 	account := Account{
@@ -91,9 +99,15 @@ func sub2AccountFromRow(row sub2AccountRow, cfg Config, now time.Time) (Account,
 		Valid: valid, Focus: focus, Priority: row.priority, Groups: row.groupNames,
 		UsageStatus: "ok", RecentRequests: row.recentRequests, RecentErrors: row.recentErrors,
 	}
-	if row.expiresAt.Valid { account.ExpiredAt = row.expiresAt.Time.UTC().Format(time.RFC3339) }
-	if row.lastUsedAt.Valid { account.LastUsedAt = row.lastUsedAt.Time.UTC().Format(time.RFC3339) }
-	if row.recentErrors > 0 || !valid { account.UsageStatus = "attention" }
+	if row.expiresAt.Valid {
+		account.ExpiredAt = row.expiresAt.Time.UTC().Format(time.RFC3339)
+	}
+	if row.lastUsedAt.Valid {
+		account.LastUsedAt = row.lastUsedAt.Time.UTC().Format(time.RFC3339)
+	}
+	if row.recentErrors > 0 || !valid {
+		account.UsageStatus = "attention"
+	}
 	return account, true
 }
 
@@ -104,15 +118,25 @@ func containsFocusMarker(notes string) bool {
 
 func intersects(values, wanted []string) bool {
 	set := make(map[string]struct{}, len(wanted))
-	for _, value := range wanted { set[value] = struct{}{} }
-	for _, value := range values { if _, ok := set[value]; ok { return true } }
+	for _, value := range wanted {
+		set[value] = struct{}{}
+	}
+	for _, value := range values {
+		if _, ok := set[value]; ok {
+			return true
+		}
+	}
 	return false
 }
 
 func maskIdentifier(value string) string {
 	value = strings.TrimSpace(value)
-	if strings.Contains(value, "@") { return maskEmail(value) }
-	if len([]rune(value)) <= 2 { return "**" }
+	if strings.Contains(value, "@") {
+		return maskEmail(value)
+	}
+	if len([]rune(value)) <= 2 {
+		return "**"
+	}
 	runes := []rune(value)
 	return string(runes[:2]) + "***"
 }

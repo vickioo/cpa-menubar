@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Sub2 账号池看板</title>
+  <style>
+    :root { color-scheme: light; font-family: Inter, "Segoe UI", sans-serif; background:#f4f6f8; color:#17202a; }
+    * { box-sizing:border-box; letter-spacing:0; }
+    body { margin:0; min-height:100vh; }
+    button { font:inherit; }
+    .shell { width:min(1040px,100%); margin:auto; padding:28px 22px 40px; }
+    header { display:flex; align-items:center; gap:14px; border-bottom:1px solid #d8dde3; padding-bottom:18px; }
+    h1 { margin:0; font-size:24px; }
+    .sub { color:#68717c; font-size:13px; margin-top:4px; }
+    .status { margin-left:auto; display:flex; align-items:center; gap:8px; color:#286b46; font-size:13px; }
+    .dot { width:8px; height:8px; border-radius:50%; background:#2e9b64; }
+    .metrics { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; padding:18px 0; }
+    .metric { border:1px solid #d8dde3; border-radius:6px; background:#fff; padding:14px; }
+    .metric span { color:#68717c; font-size:12px; }
+    .metric strong { display:block; margin-top:7px; font-size:25px; }
+    .toolbar { display:flex; gap:12px; align-items:center; border-top:1px solid #d8dde3; border-bottom:1px solid #d8dde3; padding:12px 0; }
+    .tabs { display:flex; border:1px solid #cbd2d9; border-radius:6px; overflow:hidden; }
+    .tabs button { border:0; border-right:1px solid #cbd2d9; background:#fff; padding:7px 16px; cursor:pointer; }
+    .tabs button:last-child { border-right:0; }
+    .tabs button.active { background:#202a35; color:#fff; }
+    .notice { margin-left:auto; font-size:12px; color:#68717c; }
+    .list { display:grid; gap:9px; padding-top:14px; }
+    .account { display:grid; grid-template-columns:minmax(180px,1.4fr) .7fr .7fr .7fr 1fr; align-items:center; gap:12px; background:#fff; border:1px solid #d8dde3; border-left:4px solid #6e7883; border-radius:6px; padding:13px 14px; }
+    .account.focus { border-left-color:#c58a14; }
+    .account.attention { background:#fffaf0; }
+    .name { font-weight:650; overflow-wrap:anywhere; }
+    .meta { color:#68717c; font-size:12px; margin-top:4px; }
+    .label { display:inline-block; border:1px solid #d0a443; color:#7a5410; background:#fff8e7; border-radius:4px; padding:2px 6px; font-size:11px; margin-left:6px; }
+    .cell { font-size:13px; }
+    .cell b { display:block; font-size:14px; margin-top:3px; }
+    .healthy { color:#24724a; }
+    .warn { color:#a15a10; }
+    .empty { padding:40px; text-align:center; color:#68717c; }
+    footer { margin-top:18px; color:#68717c; font-size:12px; }
+    @media(max-width:760px) {
+      .shell { padding:18px 12px; }
+      header { align-items:flex-start; }
+      .metrics { grid-template-columns:repeat(2,1fr); }
+      .toolbar { align-items:flex-start; flex-direction:column; }
+      .notice { margin-left:0; }
+      .account { grid-template-columns:1fr 1fr; }
+      .account > :first-child { grid-column:1/-1; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div>
+        <h1>Sub2 账号池</h1>
+        <div class="sub">有效账号与重点账号 · 只读脱敏视图</div>
+      </div>
+      <div class="status"><span class="dot"></span>预览就绪</div>
+    </header>
+    <section class="metrics" id="metrics"></section>
+    <section class="toolbar">
+      <div class="tabs" aria-label="账号筛选">
+        <button class="active" data-filter="all">全部</button>
+        <button data-filter="focus">重点</button>
+        <button data-filter="attention">异常</button>
+      </div>
+      <div class="notice">演示数据 · 不包含 Token、密码或原始凭证</div>
+    </section>
+    <section class="list" id="list"></section>
+    <footer>账号排序：重点优先，其次异常，最后按优先级排列。生产接入时仅需替换为 Bridge 的 <code>/desktop/v1/accounts</code> 响应。</footer>
+  </main>
+  <script>
+    const accounts = [
+      {display_name:"al***@example.com",plan:"plus",valid:true,focus:true,priority:100,groups:["核心池","Plus"],recent_requests:1842,recent_errors:0,status:"active"},
+      {display_name:"we***@example.com",plan:"team",valid:true,focus:true,priority:90,groups:["重点池"],recent_requests:976,recent_errors:4,status:"active"},
+      {display_name:"jo***@example.com",plan:"plus",valid:true,focus:false,priority:70,groups:["标准池"],recent_requests:611,recent_errors:0,status:"active"},
+      {display_name:"wi***@example.com",plan:"plus",valid:false,focus:true,priority:85,groups:["重点池"],recent_requests:203,recent_errors:18,status:"overloaded"}
+    ];
+    let filter="all";
+    const sorted=[...accounts].sort((a,b)=>(b.focus-a.focus)||((!b.valid)-(!a.valid))||(b.priority-a.priority));
+    const metric=(label,value,color="")=>`<div class="metric"><span>${label}</span><strong class="${color}">${value}</strong></div>`;
+    function render(){
+      const focus=accounts.filter(a=>a.focus).length, valid=accounts.filter(a=>a.valid).length;
+      const attention=accounts.filter(a=>!a.valid||a.recent_errors>0).length;
+      document.querySelector("#metrics").innerHTML=metric("纳入看板",accounts.length)+metric("当前有效",valid,"healthy")+metric("重点账号",focus)+metric("需要关注",attention,attention?"warn":"healthy");
+      const rows=sorted.filter(a=>filter==="all"||(filter==="focus"&&a.focus)||(filter==="attention"&&(!a.valid||a.recent_errors>0)));
+      document.querySelector("#list").innerHTML=rows.length?rows.map(a=>`
+        <article class="account ${a.focus?"focus":""} ${!a.valid||a.recent_errors?"attention":""}">
+          <div><div class="name">${a.display_name}${a.focus?'<span class="label">重点</span>':""}</div><div class="meta">${a.plan.toUpperCase()} · ${a.groups.join(" · ")}</div></div>
+          <div class="cell">健康度<b class="${a.valid?"healthy":"warn"}">${a.valid?"有效":"需关注"}</b></div>
+          <div class="cell">优先级<b>${a.priority}</b></div>
+          <div class="cell">24h 请求<b>${a.recent_requests.toLocaleString()}</b></div>
+          <div class="cell">24h 错误<b class="${a.recent_errors?"warn":"healthy"}">${a.recent_errors}</b></div>
+        </article>`).join(""):'<div class="empty">没有符合条件的账号</div>';
+    }
+    document.querySelectorAll("[data-filter]").forEach(button=>button.addEventListener("click",()=>{
+      filter=button.dataset.filter;
+      document.querySelectorAll("[data-filter]").forEach(item=>item.classList.toggle("active",item===button));
+      render();
+    }));
+    render();
+  </script>
+</body>
+</html>

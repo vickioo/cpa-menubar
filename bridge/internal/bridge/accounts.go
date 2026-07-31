@@ -54,9 +54,15 @@ func (s *Server) handleSummary(w http.ResponseWriter, r *http.Request) {
 		}
 		summary := Summary{Source: "sub2", GeneratedAt: time.Now(), AccountsTotal: len(accounts), CodexAccounts: len(accounts), Services: map[string]bool{"sub2": s.db != nil}}
 		for _, account := range accounts {
-			if account.Valid { summary.ValidAccounts++ }
-			if account.Focus { summary.FocusAccounts++ }
-			if account.ExpiredAt != "" { summary.Expired++ }
+			if account.Valid {
+				summary.ValidAccounts++
+			}
+			if account.Focus {
+				summary.FocusAccounts++
+			}
+			if account.ExpiredAt != "" {
+				summary.Expired++
+			}
 		}
 		writeJSON(w, http.StatusOK, summary)
 		return
