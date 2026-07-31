@@ -40,7 +40,7 @@ SELECT a.id, a.name, a.platform, a.type, a.status, a.schedulable,
        u.plan_type, u.five_hour_used_percent, u.five_hour_reset_at,
        u.weekly_used_percent, u.weekly_reset_at,
        u.weekly_limit, u.weekly_usage, u.usage_updated_at,
-       u.rate_limit_reset_at, u.ops_health
+       u.rate_limit_reset_at, u.ops_health, u.automatic_expiry_at
 FROM accounts a
 LEFT JOIN group_data gd ON gd.account_id = a.id
 LEFT JOIN recent_usage ru ON ru.account_id = a.id
@@ -52,7 +52,7 @@ ORDER BY a.id`
 const sub2NativeUsageQuery = `
 SELECT plan_type, five_hour_used_percent, five_hour_reset_at,
        weekly_used_percent, weekly_reset_at, weekly_limit, weekly_usage,
-       usage_updated_at, rate_limit_reset_at, ops_health
+       usage_updated_at, rate_limit_reset_at, ops_health, automatic_expiry_at
 FROM cpa_desktop_account_usage
 WHERE account_id = $1`
 
@@ -72,6 +72,7 @@ type sub2NativeUsage struct {
 	fiveHourResetAt, weeklyResetAt              sql.NullString
 	weeklyLimit, weeklyUsage                    sql.NullFloat64
 	usageUpdatedAt, rateLimitResetAt, opsHealth sql.NullString
+	automaticExpiryAt                           sql.NullString
 }
 
 func (s *Server) loadSub2Accounts(ctx context.Context) ([]Account, error) {
@@ -95,7 +96,7 @@ func (s *Server) loadSub2Accounts(ctx context.Context) ([]Account, error) {
 			&row.native.planType, &row.native.fiveHourUsed, &row.native.fiveHourResetAt,
 			&row.native.weeklyUsed, &row.native.weeklyResetAt,
 			&row.native.weeklyLimit, &row.native.weeklyUsage, &row.native.usageUpdatedAt,
-			&row.native.rateLimitResetAt, &row.native.opsHealth); err != nil {
+			&row.native.rateLimitResetAt, &row.native.opsHealth, &row.native.automaticExpiryAt); err != nil {
 			return nil, err
 		}
 		if err := json.Unmarshal(groupNamesJSON, &row.groupNames); err != nil {
@@ -103,6 +104,7 @@ func (s *Server) loadSub2Accounts(ctx context.Context) ([]Account, error) {
 		}
 		account, include := sub2AccountFromRow(row, time.Now())
 		if include {
+			s.applySub2Probe(&account, row.id)
 			accounts = append(accounts, account)
 		}
 	}
@@ -149,6 +151,13 @@ func (s *Server) handleSub2Pools(w http.ResponseWriter, r *http.Request) {
 		pool0703.Accounts = 1
 		pool0703.WeeklyUsedPercent = nullFloatPointer(usage0703.weeklyUsed)
 		pool0703.WeeklyResetAt = nullStringValue(usage0703.weeklyResetAt)
+		s.probeMu.RLock()
+		probe, probed := s.probeCache[int64(s.cfg.Sub2Target0703ID)]
+		s.probeMu.RUnlock()
+		if probed && probe.status == "ok" && probe.weeklyUsed != nil {
+			pool0703.WeeklyUsedPercent = probe.weeklyUsed
+			pool0703.WeeklyResetAt = probe.weeklyResetAt
+		}
 	}
 	pools = append(pools, pool0703)
 
@@ -198,7 +207,7 @@ func (s *Server) loadSub2NativeUsage(ctx context.Context, accountID int64) (sub2
 	err := s.db.QueryRowContext(ctx, sub2NativeUsageQuery, accountID).Scan(
 		&usage.planType, &usage.fiveHourUsed, &usage.fiveHourResetAt,
 		&usage.weeklyUsed, &usage.weeklyResetAt, &usage.weeklyLimit, &usage.weeklyUsage,
-		&usage.usageUpdatedAt, &usage.rateLimitResetAt, &usage.opsHealth,
+		&usage.usageUpdatedAt, &usage.rateLimitResetAt, &usage.opsHealth, &usage.automaticExpiryAt,
 	)
 	if err == sql.ErrNoRows {
 		return sub2NativeUsage{}, false, nil
@@ -227,18 +236,22 @@ func sub2AccountFromRow(row sub2AccountRow, now time.Time) (Account, bool) {
 		Disabled: false, Status: row.status, Schedulable: true, Valid: true,
 		Groups: row.groupNames, UsageStatus: "ok",
 		RecentRequests: row.recentRequests, RecentErrors: row.recentErrors,
-		FiveHourUsed:     nullFloatPointer(row.native.fiveHourUsed),
-		FiveHourResetAt:  nullStringValue(row.native.fiveHourResetAt),
-		WeeklyUsed:       nullFloatPointer(row.native.weeklyUsed),
-		WeeklyResetAt:    nullStringValue(row.native.weeklyResetAt),
-		WeeklyLimit:      nullFloatPointer(row.native.weeklyLimit),
-		WeeklyUsage:      nullFloatPointer(row.native.weeklyUsage),
-		UsageUpdatedAt:   nullStringValue(row.native.usageUpdatedAt),
-		RateLimitResetAt: nullStringValue(row.native.rateLimitResetAt),
-		OpsHealth:        nullStringValue(row.native.opsHealth),
+		FiveHourUsed:      nullFloatPointer(row.native.fiveHourUsed),
+		FiveHourResetAt:   nullStringValue(row.native.fiveHourResetAt),
+		WeeklyUsed:        nullFloatPointer(row.native.weeklyUsed),
+		WeeklyResetAt:     nullStringValue(row.native.weeklyResetAt),
+		WeeklyLimit:       nullFloatPointer(row.native.weeklyLimit),
+		WeeklyUsage:       nullFloatPointer(row.native.weeklyUsage),
+		UsageUpdatedAt:    nullStringValue(row.native.usageUpdatedAt),
+		RateLimitResetAt:  nullStringValue(row.native.rateLimitResetAt),
+		OpsHealth:         nullStringValue(row.native.opsHealth),
+		AutomaticExpiryAt: normalizeSub2Expiry(nullStringValue(row.native.automaticExpiryAt)),
 	}
 	if row.expiresAt.Valid {
 		account.ExpiredAt = row.expiresAt.Time.UTC().Format(time.RFC3339)
+		if account.AutomaticExpiryAt == "" {
+			account.AutomaticExpiryAt = account.ExpiredAt
+		}
 	}
 	if row.lastUsedAt.Valid {
 		account.LastUsedAt = row.lastUsedAt.Time.UTC().Format(time.RFC3339)

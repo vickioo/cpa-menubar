@@ -9,14 +9,16 @@ const bridgeURL = process.env.BRIDGE_URL;
 const bridgeToken = process.env.BRIDGE_TOKEN;
 
 http.createServer(async (request, response) => {
-  let apiPath = request.url === "/api/summary"
+  let apiPath = request.method === "GET" && request.url === "/api/summary"
     ? "/desktop/v1/summary"
-    : request.url === "/api/accounts"
+    : request.method === "GET" && request.url === "/api/accounts"
       ? "/desktop/v1/accounts"
-      : request.url === "/api/pools"
+      : request.method === "GET" && request.url === "/api/pools"
         ? "/desktop/v1/pools"
+        : request.method === "POST" && request.url === "/api/refresh"
+          ? "/desktop/v1/refresh"
       : null;
-  const detailMatch = request.url?.match(/^\/api\/accounts\/([a-f0-9]{12})$/);
+  const detailMatch = request.method === "GET" && request.url?.match(/^\/api\/accounts\/([a-f0-9]{12})$/);
   if (detailMatch) apiPath = `/desktop/v1/accounts/${detailMatch[1]}`;
   if (apiPath) {
     if (!bridgeURL || !bridgeToken) {
@@ -26,6 +28,7 @@ http.createServer(async (request, response) => {
     }
     try {
       const upstream = await fetch(`${bridgeURL}${apiPath}`, {
+        method: request.method,
         headers: { Authorization: `Bearer ${bridgeToken}` },
       });
       const content = await upstream.text();

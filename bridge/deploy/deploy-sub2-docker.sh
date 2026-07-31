@@ -9,8 +9,14 @@ postgres_container="sub2api-postgres"
 listen_port="18330"
 
 sudo install -d -m 0700 "$deploy_dir"
+desktop_token=""
+reader_database_url=""
+probe_database_url=""
 if sudo test -f "$deploy_dir/bridge.env"; then
   sudo cp -a "$deploy_dir/bridge.env" "$deploy_dir/bridge.env.backup.$(date +%Y%m%d-%H%M%S)"
+  desktop_token="$(sudo sed -n 's/^CPA_DESKTOP_TOKEN=//p' "$deploy_dir/bridge.env" | head -n 1)"
+  reader_database_url="$(sudo sed -n 's/^SUB2_DATABASE_URL=//p' "$deploy_dir/bridge.env" | head -n 1)"
+  probe_database_url="$(sudo sed -n 's/^SUB2_PROBE_DATABASE_URL=//p' "$deploy_dir/bridge.env" | head -n 1)"
 fi
 
 sudo docker run --rm \
@@ -26,15 +32,37 @@ sudo chmod 0755 "$deploy_dir/cpa-desktop-bridge"
 db_user="$(sudo docker exec "$postgres_container" printenv POSTGRES_USER)"
 db_name="$(sudo docker exec "$postgres_container" printenv POSTGRES_DB)"
 reader_password="$(openssl rand -hex 24)"
-desktop_token="$(openssl rand -hex 32)"
+probe_password="$(openssl rand -hex 24)"
+if [[ ${#desktop_token} -lt 32 ]]; then
+  desktop_token="$(openssl rand -hex 32)"
+fi
 
 role_exists="$(sudo docker exec "$postgres_container" psql -U "$db_user" -d "$db_name" -Atc "SELECT 1 FROM pg_roles WHERE rolname='cpa_desktop_reader'")"
-if [[ "$role_exists" == "1" ]]; then
+if [[ "$role_exists" == "1" && -n "$reader_database_url" ]]; then
+  : # Preserve the working credential from the backed-up environment.
+elif [[ "$role_exists" == "1" ]]; then
   sudo docker exec "$postgres_container" psql -U "$db_user" -d "$db_name" -v ON_ERROR_STOP=1 \
     -c "ALTER ROLE cpa_desktop_reader LOGIN PASSWORD '$reader_password'"
 else
   sudo docker exec "$postgres_container" psql -U "$db_user" -d "$db_name" -v ON_ERROR_STOP=1 \
     -c "CREATE ROLE cpa_desktop_reader LOGIN PASSWORD '$reader_password'"
+fi
+if [[ -z "$reader_database_url" ]]; then
+  reader_database_url="postgres://cpa_desktop_reader:$reader_password@$postgres_container:5432/$db_name?sslmode=disable"
+fi
+
+probe_role_exists="$(sudo docker exec "$postgres_container" psql -U "$db_user" -d "$db_name" -Atc "SELECT 1 FROM pg_roles WHERE rolname='cpa_desktop_probe'")"
+if [[ "$probe_role_exists" == "1" && -n "$probe_database_url" ]]; then
+  : # Preserve the working credential from the backed-up environment.
+elif [[ "$probe_role_exists" == "1" ]]; then
+  sudo docker exec "$postgres_container" psql -U "$db_user" -d "$db_name" -v ON_ERROR_STOP=1 \
+    -c "ALTER ROLE cpa_desktop_probe LOGIN PASSWORD '$probe_password'"
+else
+  sudo docker exec "$postgres_container" psql -U "$db_user" -d "$db_name" -v ON_ERROR_STOP=1 \
+    -c "CREATE ROLE cpa_desktop_probe LOGIN PASSWORD '$probe_password'"
+fi
+if [[ -z "$probe_database_url" ]]; then
+  probe_database_url="postgres://cpa_desktop_probe:$probe_password@$postgres_container:5432/$db_name?sslmode=disable"
 fi
 
 view_exists="$(sudo docker exec "$postgres_container" psql -U "$db_user" -d "$db_name" -Atc "SELECT to_regclass('public.cpa_desktop_account_usage') IS NOT NULL")"
@@ -45,6 +73,15 @@ if [[ "$view_exists" == "t" ]]; then
 fi
 sudo docker exec -i "$postgres_container" psql -U "$db_user" -d "$db_name" -v ON_ERROR_STOP=1 \
   < "$repo_dir/bridge/deploy/sub2-account-usage-view.sql"
+
+probe_view_exists="$(sudo docker exec "$postgres_container" psql -U "$db_user" -d "$db_name" -Atc "SELECT to_regclass('public.cpa_desktop_account_probe') IS NOT NULL")"
+if [[ "$probe_view_exists" == "t" ]]; then
+  sudo docker exec "$postgres_container" pg_dump -U "$db_user" -d "$db_name" \
+    --schema-only --table=public.cpa_desktop_account_probe \
+    | sudo tee "$deploy_dir/cpa_desktop_account_probe.backup.$(date +%Y%m%d-%H%M%S).sql" >/dev/null
+fi
+sudo docker exec -i "$postgres_container" psql -U "$db_user" -d "$db_name" -v ON_ERROR_STOP=1 \
+  < "$repo_dir/bridge/deploy/sub2-account-probe-view.sql"
 
 sudo docker exec "$postgres_container" psql -U "$db_user" -d "$db_name" -v ON_ERROR_STOP=1 \
   -c "GRANT CONNECT ON DATABASE \"$db_name\" TO cpa_desktop_reader" \
@@ -61,10 +98,26 @@ sudo docker exec "$postgres_container" psql -U "$db_user" -d "$db_name" -v ON_ER
   -c "ALTER ROLE cpa_desktop_reader SET default_transaction_read_only = on" \
   -c "ALTER ROLE cpa_desktop_reader SET statement_timeout = '5s'"
 
+sudo docker exec "$postgres_container" psql -U "$db_user" -d "$db_name" -v ON_ERROR_STOP=1 \
+  -c "GRANT CONNECT ON DATABASE \"$db_name\" TO cpa_desktop_probe" \
+  -c "GRANT USAGE ON SCHEMA public TO cpa_desktop_probe" \
+  -c "REVOKE ALL ON public.accounts FROM cpa_desktop_probe" \
+  -c "REVOKE ALL ON public.proxies FROM cpa_desktop_probe" \
+  -c "GRANT SELECT ON public.cpa_desktop_account_probe TO cpa_desktop_probe" \
+  -c "ALTER ROLE cpa_desktop_probe SET default_transaction_read_only = on" \
+  -c "ALTER ROLE cpa_desktop_probe SET statement_timeout = '25s'"
+
 permission_check="$(sudo docker exec "$postgres_container" psql -U "$db_user" -d "$db_name" -Atc \
   "SELECT has_column_privilege('cpa_desktop_reader','public.accounts','credentials','SELECT'), has_column_privilege('cpa_desktop_reader','public.accounts','extra','SELECT'), has_table_privilege('cpa_desktop_reader','public.cpa_desktop_account_usage','SELECT')")"
 if [[ "$permission_check" != "f|f|t" ]]; then
   echo "Unexpected cpa_desktop_reader privileges: $permission_check" >&2
+  exit 1
+fi
+
+probe_permission_check="$(sudo docker exec "$postgres_container" psql -U "$db_user" -d "$db_name" -Atc \
+  "SELECT has_column_privilege('cpa_desktop_probe','public.accounts','credentials','SELECT'), has_column_privilege('cpa_desktop_probe','public.proxies','password','SELECT'), has_table_privilege('cpa_desktop_probe','public.cpa_desktop_account_probe','SELECT')")"
+if [[ "$probe_permission_check" != "f|f|t" ]]; then
+  echo "Unexpected cpa_desktop_probe privileges: $probe_permission_check" >&2
   exit 1
 fi
 
@@ -75,14 +128,19 @@ umask 077
   echo "CPA_DESKTOP_LISTEN=0.0.0.0:8330"
   echo "CPA_DESKTOP_TOKEN=$desktop_token"
   echo "CPA_ACCOUNT_SOURCE=sub2"
-  echo "SUB2_DATABASE_URL=postgres://cpa_desktop_reader:$reader_password@$postgres_container:5432/$db_name?sslmode=disable"
+  echo "SUB2_DATABASE_URL=$reader_database_url"
+  echo "SUB2_PROBE_DATABASE_URL=$probe_database_url"
+  echo "SUB2_PROBE_COOLDOWN_SECONDS=45"
+  echo "SUB2_PROBE_CONCURRENCY=3"
   echo "SUB2_TARGET_0703_ACCOUNT_ID=20"
   echo "SUB2_TARGET_FU_ACCOUNT_IDS=2,24"
 } > "$env_tmp"
 sudo install -m 0600 "$env_tmp" "$deploy_dir/bridge.env"
 
 printf '%s\n' \
+  'FROM golang:1.25-bookworm AS certificates' \
   'FROM scratch' \
+  'COPY --from=certificates /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt' \
   'COPY cpa-desktop-bridge /cpa-desktop-bridge' \
   'ENTRYPOINT ["/cpa-desktop-bridge"]' \
   | sudo docker build -t cpa-sub2-bridge:local -f - "$deploy_dir"

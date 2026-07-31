@@ -56,7 +56,7 @@ SUB2_TARGET_0703_ACCOUNT_ID=20
 SUB2_TARGET_FU_ACCOUNT_IDS=2,24
 ```
 
-In this mode OAuth and reset-credit endpoints are disabled, and the app hides their controls.
+In this mode credential mutation remains disabled: the desktop cannot add OAuth authorizations or consume reset credits. A separate authenticated refresh endpoint performs read-only OAuth liveness, quota, reset-credit-count, and subscription-expiry probes through a dedicated database role and restricted view.
 
 For a Docker deployment beside an existing Sub2 stack, use:
 
@@ -81,7 +81,7 @@ Account names stay masked in the list. Selecting a name requests a narrow authen
 
 The overview and tray menu use upstream quota values already cached by Sub2. The 0703 card reads the configured 20X primary account's native 7-day percentage and reset time. The FuCCC card sums the weekly limit and usage for its two configured API-key mirror accounts. These figures are not Sub2 group budgets or `usage_logs.actual_cost` totals.
 
-Each account card uses its native 7-day or weekly quota as the primary progress bar. Expanding a selected account reveals 5-hour quota, reset time, bound groups, authorization type, plan, last use, and quota update time. Reset-credit count is shown as unavailable until Sub2 exposes a verified cached field; the bridge does not infer it.
+Each account card uses its native 7-day or weekly quota as the primary progress bar. Expanding a selected account reveals 5-hour quota, reset time, bound groups, authorization type, plan, authorization probe state, available reset-credit count, subscription expiry, last use, and quota update time. The fixed refresh action probes OAuth accounts in real time; only HTTP 401/403 marks authorization invalid, while transient network failures remain probe errors. Automatic subscription expiry is preferred over the dashboard's optional local manual note and is displayed separately from authorization survival.
 
 ## Configuration
 

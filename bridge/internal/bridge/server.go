@@ -13,11 +13,16 @@ import (
 )
 
 type Server struct {
-	cfg      Config
-	client   *http.Client
-	sessions map[string]*oauthSession
-	mu       sync.Mutex
-	db       *sql.DB
+	cfg              Config
+	client           *http.Client
+	sessions         map[string]*oauthSession
+	mu               sync.Mutex
+	db               *sql.DB
+	probeDB          *sql.DB
+	probeRunMu       sync.Mutex
+	probeMu          sync.RWMutex
+	probeCache       map[int64]sub2ProbeSnapshot
+	probeLastAttempt map[int64]time.Time
 }
 
 func NewServer(cfg Config) (*Server, error) {
@@ -26,7 +31,9 @@ func NewServer(cfg Config) (*Server, error) {
 		client: &http.Client{
 			Timeout: cfg.UsageTimeout,
 		},
-		sessions: make(map[string]*oauthSession),
+		sessions:         make(map[string]*oauthSession),
+		probeCache:       make(map[int64]sub2ProbeSnapshot),
+		probeLastAttempt: make(map[int64]time.Time),
 	}
 	if cfg.AccountSource == "sub2" {
 		db, err := sql.Open("pgx", cfg.Sub2DatabaseURL)
@@ -34,6 +41,13 @@ func NewServer(cfg Config) (*Server, error) {
 			return nil, err
 		}
 		server.db = db
+		if cfg.Sub2ProbeDatabaseURL != "" {
+			probeDB, err := sql.Open("pgx", cfg.Sub2ProbeDatabaseURL)
+			if err != nil {
+				return nil, err
+			}
+			server.probeDB = probeDB
+		}
 	}
 	return server, nil
 }
@@ -69,6 +83,12 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		s.handleSub2Pools(w, r)
+	case r.Method == http.MethodPost && r.URL.Path == "/desktop/v1/refresh":
+		if s.cfg.AccountSource != "sub2" {
+			writeError(w, http.StatusMethodNotAllowed, "live refresh is only available for the Sub2 source")
+			return
+		}
+		s.handleSub2Refresh(w, r)
 	case r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/desktop/v1/accounts/"):
 		if s.cfg.AccountSource != "sub2" {
 			writeError(w, http.StatusNotFound, "not found")

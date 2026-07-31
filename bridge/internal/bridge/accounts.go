@@ -52,7 +52,7 @@ func (s *Server) handleSummary(w http.ResponseWriter, r *http.Request) {
 			writeError(w, http.StatusInternalServerError, "failed to read Sub2 account status")
 			return
 		}
-		summary := Summary{Source: "sub2", GeneratedAt: time.Now(), AccountsTotal: len(accounts), CodexAccounts: len(accounts), Services: map[string]bool{"sub2": s.db != nil}}
+		summary := Summary{Source: "sub2", GeneratedAt: time.Now(), AccountsTotal: len(accounts), CodexAccounts: len(accounts), Services: map[string]bool{"sub2": s.db != nil, "live_probe": s.probeDB != nil}}
 		for _, account := range accounts {
 			if account.Valid {
 				summary.ValidAccounts++

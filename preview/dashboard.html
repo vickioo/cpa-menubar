@@ -5,142 +5,153 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Sub2 账号池</title>
   <style>
-    :root{font-family:Inter,"Segoe UI",sans-serif;color:#171b20;background:#e7eaed;letter-spacing:0}
-    *{box-sizing:border-box;letter-spacing:0}body{margin:0;min-height:100vh}button{font:inherit}
-    .panel{width:min(420px,100%);min-height:100vh;margin:auto;padding:12px;background:#f7f8f9;box-shadow:0 8px 28px rgba(35,42,50,.14)}
-    header{display:flex;align-items:flex-start;gap:8px;padding:2px 1px 9px;border-bottom:1px solid #d7dce1}
-    h1{margin:0;font-size:17px;line-height:1.2}.sub{margin-top:3px;color:#68717b;font-size:11px}
-    .status{margin-left:auto;display:flex;align-items:center;gap:5px;color:#287148;font-size:11px;white-space:nowrap}.dot{width:7px;height:7px;border-radius:50%;background:#39a46a}
-    .view-tabs{display:flex;justify-content:center;gap:3px;padding:8px 0;border-bottom:1px solid #d7dce1}.view-tabs button{min-width:72px;border:0;border-radius:5px;background:transparent;padding:5px 14px;cursor:pointer}.view-tabs button.active{background:#20272e;color:#fff}
-    .metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;padding:8px 0}
-    .metric{min-width:0;padding:7px 8px;background:#fff;border:1px solid #d9dee3;border-radius:5px}.metric span{display:block;overflow:hidden;color:#69727c;font-size:9px;white-space:nowrap;text-overflow:ellipsis}.metric strong{display:block;margin-top:2px;font-size:16px}.healthy{color:#287148}.warn{color:#a26012}
-    .section-label{display:flex;align-items:center;margin:1px 1px 6px;color:#69727c;font-size:10px}.section-label strong{color:#303840;font-size:11px}.section-label span{margin-left:auto}
-    .toolbar{display:flex;align-items:center;gap:6px;padding:7px 0;border-bottom:1px solid #d7dce1}.tabs{display:flex;border:1px solid #cbd2d9;border-radius:5px;overflow:hidden}.tabs button{padding:5px 10px;border:0;border-right:1px solid #cbd2d9;background:#fff;cursor:pointer;font-size:11px}.tabs button:last-child{border:0}.tabs button.active{background:#20272e;color:#fff}.sync{margin-left:auto;color:#69727c;font-size:9px}
-    .list,.pool-list{display:grid;gap:5px;padding-top:7px}.account,.pool{background:#fff;border:1px solid #d8dde2;border-radius:5px}.account{padding:7px 8px;border-left:3px solid #75808a}.account.focus{border-left-color:#bd8111}.head{display:flex;align-items:flex-start;gap:7px}.identity{min-width:0;flex:1}.name-button{max-width:100%;border:0;background:transparent;padding:0;color:#171b20;font-size:12px;font-weight:700;cursor:pointer;text-align:left;overflow-wrap:anywhere}.name-button:hover{text-decoration:underline}.meta{margin-top:2px;color:#69727c;font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .focus-button{width:22px;height:22px;padding:0;border:0;background:transparent;color:#89929b;font-size:16px;line-height:22px;cursor:pointer}.focus-button.active{color:#bd8111}.state{display:flex;align-items:center;gap:4px;padding-top:2px;color:#287148;font-size:10px;white-space:nowrap}.state.bad{color:#a26012}.signal{display:inline-flex;height:11px;align-items:flex-end;gap:1px}.signal i{display:block;width:2px;background:currentColor;border-radius:1px}.signal i:nth-child(1){height:3px}.signal i:nth-child(2){height:6px}.signal i:nth-child(3){height:9px}
-    .quota{display:grid;grid-template-columns:36px minmax(0,1fr) 34px 66px;align-items:center;gap:6px;margin-top:7px}.quota-label{font-size:10px;font-weight:600}.bar{height:6px;overflow:hidden;border-radius:3px;background:#e2e6e9}.fill{height:100%;background:#3c9a61}.fill.warn{background:#bd8111}.fill.bad{background:#bd4c43}.pct{text-align:right;font-size:10px;font-weight:700}.reset{text-align:right;color:#69727c;font-size:9px;white-space:nowrap}
-    .card-foot{display:flex;align-items:center;gap:7px;margin-top:5px;color:#707983;font-size:9px}.health-stars{color:#39905c;white-space:nowrap}.card-foot span:last-child{margin-left:auto}.detail{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 12px;margin:7px -1px -1px;padding:7px 1px 1px;border-top:1px solid #e4e7ea}.detail-item{min-width:0;padding:3px 0}.detail-item.wide{grid-column:1/-1}.detail-label{display:block;color:#7b848d;font-size:8px}.detail-value{display:block;margin-top:1px;color:#2c343c;font-size:10px;overflow-wrap:anywhere}
-    .pool{padding:9px}.pool-head,.pool-foot,.pool-quota{display:flex;align-items:center;gap:7px}.pool-head strong{font-size:12px}.source-tag{margin-left:auto;padding:2px 5px;border-radius:3px;background:#eef1f3;color:#68717b;font-size:8px}.pool-quota{margin-top:8px}.pool-quota span{font-size:10px}.pool-quota strong{margin-left:auto;font-size:12px}.pool .bar{margin:6px 0}.pool-foot{color:#68717b;font-size:9px}.pool-foot span:last-child{margin-left:auto;text-align:right}.empty{padding:30px 8px;text-align:center;color:#69727c;font-size:11px}
-    footer{margin-top:11px;padding:0 1px;color:#747d87;font-size:9px;line-height:1.45}
-    @media(max-width:380px){.panel{padding:10px}.quota{grid-template-columns:32px minmax(0,1fr) 31px 58px;gap:4px}.detail{grid-template-columns:1fr}.detail-item.wide{grid-column:auto}.sync{display:none}}
+    :root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#1d1d1f;background:#e9eaec;letter-spacing:0;color-scheme:light}
+    *{box-sizing:border-box;letter-spacing:0}body{margin:0;min-height:100vh;display:grid;place-items:center}button,input,select{font:inherit}button{color:inherit}
+    .panel{width:min(400px,calc(100% - 16px));height:min(560px,calc(100vh - 16px));min-height:min(520px,calc(100vh - 16px));display:flex;flex-direction:column;overflow:hidden;background:rgba(249,249,250,.98);border:1px solid rgba(88,88,92,.22);border-radius:16px;box-shadow:0 18px 50px rgba(29,29,31,.16)}
+    header{flex:0 0 auto;display:flex;align-items:center;gap:9px;padding:11px 14px 10px;border-bottom:1px solid #d8d8dc}.title-block{min-width:0}.title-row{display:flex;align-items:center;gap:7px}h1{margin:0;font-size:16px;line-height:1.2}.sub{margin-top:2px;color:#71717a;font-size:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .status{margin-left:auto;display:flex;align-items:center;gap:5px;color:#2f7d4f;font-size:10px;white-space:nowrap}.dot{width:7px;height:7px;border-radius:50%;background:#34a267}.status.warn{color:#9a6215}.status.warn .dot{background:#c18322}.icon-button{width:28px;height:28px;display:grid;place-items:center;padding:0;border:0;border-radius:8px;background:transparent;cursor:pointer;font-size:16px}.icon-button:hover{background:#e8e8eb}.icon-button.active{background:#dedee2}
+    .view-tabs{flex:0 0 auto;display:flex;justify-content:center;gap:2px;padding:8px 14px;border-bottom:1px solid #d8d8dc}.view-tabs button{min-width:76px;padding:5px 14px;border:0;border-radius:6px;background:transparent;cursor:pointer;font-size:11px}.view-tabs button.active{background:#2d2d31;color:#fff}
+    .content{min-height:0;flex:1;overflow-y:auto;scrollbar-width:thin}.view{padding:0 14px 10px}.metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;padding:9px 0}.metric{min-width:0;padding:7px 8px;background:#fff;border:1px solid #dedee2;border-radius:8px}.metric span{display:block;overflow:hidden;color:#777780;font-size:9px;white-space:nowrap;text-overflow:ellipsis}.metric strong{display:block;margin-top:2px;font-size:15px}.healthy{color:#2d8050}.warn-text{color:#a76a15}.bad-text{color:#b34b45}
+    .section-label{display:flex;align-items:center;margin:2px 1px 6px;color:#777780;font-size:9px}.section-label strong{color:#34343a;font-size:11px}.section-label span{margin-left:auto}.toolbar{display:flex;align-items:center;gap:6px;padding:8px 0 7px;border-bottom:1px solid #dddde1}.tabs{display:flex;border:1px solid #cfcfd4;border-radius:7px;overflow:hidden}.tabs button{padding:5px 9px;border:0;border-right:1px solid #cfcfd4;background:#fff;cursor:pointer;font-size:10px}.tabs button:last-child{border:0}.tabs button.active{background:#35353a;color:#fff}.sync{margin-left:auto;color:#7b7b84;font-size:9px}
+    .list,.pool-list{display:grid;gap:6px;padding-top:7px}.account,.pool{background:#fff;border:1px solid #dcdce1;border-radius:10px}.account{padding:8px 9px}.account.focus{box-shadow:inset 3px 0 #c78a28}.account.expiring{border-color:#d29a45}.head{display:flex;align-items:flex-start;gap:6px}.identity{min-width:0;flex:1}.name-button{max-width:100%;padding:0;border:0;background:transparent;font-size:11px;font-weight:650;cursor:pointer;text-align:left;overflow-wrap:anywhere}.name-button:hover{text-decoration:underline}.meta{margin-top:2px;color:#787881;font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .focus-button{width:22px;height:22px;padding:0;border:0;background:transparent;color:#97979f;font-size:16px;line-height:22px;cursor:pointer}.focus-button.active{color:#bd811f}.state{display:flex;align-items:center;gap:4px;padding-top:2px;color:#2f8051;font-size:9px;white-space:nowrap}.state.bad{color:#b54b45}.state.unknown{color:#777780}.signal{display:inline-flex;height:10px;align-items:flex-end;gap:1px}.signal i{display:block;width:2px;background:currentColor;border-radius:1px}.signal i:nth-child(1){height:3px}.signal i:nth-child(2){height:6px}.signal i:nth-child(3){height:9px}
+    .quota{display:grid;grid-template-columns:34px minmax(0,1fr) 32px 62px;align-items:center;gap:5px;margin-top:7px}.quota-label{font-size:9px;font-weight:650}.bar{height:6px;overflow:hidden;border-radius:3px;background:#e4e4e7}.fill{height:100%;background:#3d9861}.fill.warn{background:#bd811f}.fill.bad{background:#bd4f48}.pct{text-align:right;font-size:9px;font-weight:700}.reset{text-align:right;color:#74747d;font-size:8px;white-space:nowrap}
+    .card-foot{display:flex;align-items:center;gap:7px;margin-top:5px;color:#73737c;font-size:8px}.health-stars{color:#3b925e;white-space:nowrap}.card-foot .push{margin-left:auto}.expiry-soon{color:#a76a15;font-weight:650}.auth-dead{color:#b34b45;font-weight:650}.detail{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 11px;margin:7px 0 0;padding-top:6px;border-top:1px solid #e5e5e8}.detail-item{min-width:0;padding:3px 0}.detail-item.wide{grid-column:1/-1}.detail-label{display:block;color:#85858d;font-size:8px}.detail-value{display:block;margin-top:1px;color:#333338;font-size:9px;overflow-wrap:anywhere}
+    .pool{padding:9px 10px}.pool-head,.pool-foot,.pool-quota{display:flex;align-items:center;gap:7px}.pool-head strong{font-size:11px}.source-tag{margin-left:auto;padding:2px 5px;border-radius:5px;background:#eeeeF1;color:#6f6f78;font-size:8px}.pool-quota{margin-top:7px}.pool-quota span{font-size:9px}.pool-quota strong{margin-left:auto;font-size:11px}.pool .bar{margin:5px 0}.pool-foot{color:#74747d;font-size:8px}.pool-foot span:last-child{margin-left:auto;text-align:right}.empty{padding:28px 8px;text-align:center;color:#777780;font-size:10px}
+    .settings{padding:4px 14px 12px}.settings h2{margin:10px 0 5px;font-size:11px}.setting-row{display:flex;align-items:center;gap:9px;min-height:34px;border-bottom:1px solid #e1e1e4;font-size:10px}.setting-row label:first-child{flex:1}.setting-row select,.setting-row input[type=number]{height:26px;border:1px solid #cfcfd4;border-radius:6px;background:#fff;padding:2px 6px}.setting-row input[type=number]{width:58px}.toggle{width:16px;height:16px;accent-color:#343438}.account-note{padding:7px 0;border-bottom:1px solid #e1e1e4}.account-note-head{display:flex;align-items:center;gap:6px;margin-bottom:5px}.account-note-head strong{min-width:0;flex:1;font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.account-note-head span{color:#7a7a83;font-size:8px}.note-fields{display:grid;grid-template-columns:112px minmax(0,1fr);gap:6px}.note-fields input{min-width:0;height:27px;border:1px solid #cfcfd4;border-radius:6px;background:#fff;padding:3px 6px;font-size:9px}.settings-empty{padding:14px 0;color:#777780;font-size:10px}
+    .provenance{flex:0 0 auto;padding:6px 14px;color:#7b7b84;font-size:8px;line-height:1.35;border-top:1px solid #dedee2}.action-bar{flex:0 0 auto;display:flex;align-items:center;gap:8px;min-height:42px;padding:7px 14px 8px;background:#f4f4f5;border-top:1px solid #d7d7dc}.refresh-button{height:27px;display:flex;align-items:center;gap:5px;padding:0 9px;border:1px solid #c9c9ce;border-radius:7px;background:#fff;cursor:pointer;font-size:10px;font-weight:600}.refresh-button:hover{background:#f9f9fa}.refresh-button:disabled{cursor:default;opacity:.65}.refresh-icon{display:inline-block;font-size:15px;line-height:1}.refreshing .refresh-icon{animation:spin .8s linear infinite}.last-refresh{margin-left:auto;color:#74747d;font-size:8px;text-align:right}.toast{padding:5px 14px;background:#edf5ef;color:#2c7048;font-size:9px;border-top:1px solid #d7e6db}.toast.bad{background:#faeeee;color:#a54540}@keyframes spin{to{transform:rotate(360deg)}}
+    .icon-button:focus-visible,.refresh-button:focus-visible,.name-button:focus-visible,.focus-button:focus-visible,.view-tabs button:focus-visible,.tabs button:focus-visible{outline:2px solid rgba(0,122,255,.58);outline-offset:1px}
+    [hidden]{display:none!important}
+    @media(max-width:420px){body{place-items:stretch}.panel{width:100%;height:100vh;min-height:100vh;border:0;border-radius:0}.quota{grid-template-columns:32px minmax(0,1fr) 30px 58px;gap:4px}.view,.settings{padding-left:11px;padding-right:11px}.detail{grid-template-columns:1fr}.detail-item.wide{grid-column:auto}.sync{display:none}}
+    @media(prefers-reduced-motion:reduce){.refreshing .refresh-icon{animation:none}}
   </style>
 </head>
 <body>
 <main class="panel">
-  <header><div><h1>Sub2 账号池</h1><div class="sub">原生额度 · 正常账号清单</div></div><div class="status" id="status"><span class="dot"></span>连接中</div></header>
-  <nav class="view-tabs" aria-label="看板页面"><button class="active" data-view="overview">总览</button><button data-view="accounts">账号</button></nav>
-  <section id="overview-view">
-    <section class="metrics" id="metrics"></section>
-    <div class="section-label"><strong>重点账号池</strong><span>上游原生周限</span></div>
-    <section class="pool-list" id="pools"><div class="empty">正在读取原生额度</div></section>
-  </section>
-  <section id="accounts-view" hidden>
-    <section class="toolbar">
-      <div class="tabs" aria-label="账号筛选"><button class="active" data-filter="all">全部</button><button data-filter="focus">关注</button><button data-filter="tight">周限紧张</button></div>
-      <div class="sync" id="sync">实际数据</div>
+  <header>
+    <div class="title-block"><div class="title-row"><h1>Sub2 账号池</h1></div><div class="sub">可调度清单 · 上游原生额度</div></div>
+    <div class="status" id="status"><span class="dot"></span><span>连接中</span></div>
+    <button class="icon-button" id="settings-button" title="设置" aria-label="设置">&#9881;</button>
+  </header>
+  <nav class="view-tabs" id="view-tabs" aria-label="看板页面"><button class="active" data-view="overview">总览</button><button data-view="accounts">账号</button></nav>
+  <div class="content">
+    <section class="view" id="overview-view">
+      <section class="metrics" id="metrics"></section>
+      <div class="section-label"><strong>重点账号池</strong><span>原生周限</span></div>
+      <section class="pool-list" id="pools"><div class="empty">正在读取额度</div></section>
     </section>
-    <section class="list" id="list"><div class="empty">正在读取 Sub2 数据</div></section>
-  </section>
-  <footer>清单来自 Sub2 当前正常且可调度账号；5H、7D 与镜像周限来自上游额度缓存，不是 Sub2 分组预算。关注标记只保存在本机。</footer>
+    <section class="view" id="accounts-view" hidden>
+      <section class="toolbar"><div class="tabs" aria-label="账号筛选"><button class="active" data-filter="all">全部</button><button data-filter="focus">关注</button><button data-filter="tight">周限紧张</button></div><div class="sync" id="sync">实际数据</div></section>
+      <section class="list" id="list"><div class="empty">正在读取 Sub2 数据</div></section>
+    </section>
+    <section class="settings" id="settings-view" hidden>
+      <h2>状态刷新</h2>
+      <div class="setting-row"><label for="auto-refresh">自动刷新授权与额度</label><input class="toggle" id="auto-refresh" type="checkbox"></div>
+      <div class="setting-row"><label for="refresh-minutes">刷新周期</label><select id="refresh-minutes"><option value="1">1 分钟</option><option value="5">5 分钟</option><option value="10">10 分钟</option><option value="15">15 分钟</option><option value="30">30 分钟</option></select></div>
+      <div class="setting-row"><label for="expiry-days">关注账号订阅到期提醒</label><input id="expiry-days" type="number" min="1" max="90" step="1"><span>天</span></div>
+      <h2>订阅到期与手工备注</h2>
+      <div id="account-notes"><div class="settings-empty">正在读取账号</div></div>
+    </section>
+  </div>
+  <div class="provenance" id="provenance">周限：Sub2 上游原生值 · 状态刷新：OAuth 授权、重置次数、订阅到期</div>
+  <div class="toast" id="toast" hidden></div>
+  <div class="action-bar"><button class="refresh-button" id="refresh-button" title="实时验证 OAuth 授权并获取额度、重置次数与订阅到期"><span class="refresh-icon">&#8635;</span><span>刷新授权与额度</span></button><span class="last-refresh" id="last-refresh">尚未实时探测</span></div>
 </main>
 <script>
-  let accounts=[],pools=[],summary=null,filter="all";
-  const focusIDs=new Set(JSON.parse(localStorage.getItem("sub2FocusIDs")||"[]"));
+  const SETTINGS_KEY="sub2DashboardSettings",NOTES_KEY="sub2AccountExpiryNotes";
+  let accounts=[],pools=[],summary=null,filter="all",activeView="overview",showSettings=false,refreshing=false,autoTimer=null;
+  const focusIDs=new Set(readJSON("sub2FocusIDs",[]));
   const accountDetails=new Map();
+  const settings=Object.assign({autoRefresh:true,refreshMinutes:5,expiryWarnDays:14},readJSON(SETTINGS_KEY,{}));
+  const expiryNotes=readJSON(NOTES_KEY,{});
   const escapeHTML=value=>String(value??"").replace(/[&<>"']/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]));
-  const metric=(label,value,color="")=>`<div class="metric"><span>${label}</span><strong class="${color}">${value}</strong></div>`;
   const clamp=value=>Math.max(0,Math.min(100,Number(value)||0));
   const hasNumber=value=>value!==null&&value!==undefined&&Number.isFinite(Number(value));
   const formatNumber=value=>Number(value).toLocaleString("zh-CN",{maximumFractionDigits:1});
-  function quotaUsed(account){
-    if(hasNumber(account.weekly_used_percent))return clamp(account.weekly_used_percent);
-    if(hasNumber(account.weekly_limit)&&Number(account.weekly_limit)>0&&hasNumber(account.weekly_usage))return clamp(Number(account.weekly_usage)/Number(account.weekly_limit)*100);
-    return null;
+  function readJSON(key,fallback){try{return JSON.parse(localStorage.getItem(key)||"")||fallback}catch{return fallback}}
+  function saveSettings(){localStorage.setItem(SETTINGS_KEY,JSON.stringify(settings));scheduleAutoRefresh()}
+  function saveNotes(){localStorage.setItem(NOTES_KEY,JSON.stringify(expiryNotes))}
+  function parseTime(value,endOfDay=false){
+    if(!value)return null;const text=String(value).trim();
+    if(/^\d{10,13}$/.test(text)){const raw=Number(text),date=new Date(text.length===10?raw*1000:raw);return Number.isNaN(date.getTime())?null:date}
+    const date=new Date(/^\d{4}-\d{2}-\d{2}$/.test(text)&&endOfDay?`${text}T23:59:59`:text);return Number.isNaN(date.getTime())?null:date;
   }
-  function resetText(value){
-    if(!value)return "恢复暂无";
-    const target=new Date(value);if(Number.isNaN(target.getTime()))return "恢复暂无";
-    const diff=target-Date.now();if(diff<=0)return "待恢复";
-    const hours=Math.floor(diff/3600000),days=Math.floor(hours/24),rest=hours%24;
-    return days>0?`${days}天${rest}小时`:`${Math.max(1,hours)}小时`;
+  function exactTime(value){const date=parseTime(value);return date?date.toLocaleString("zh-CN",{month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false}):value?escapeHTML(value):"暂无数据"}
+  function dateOnly(value){const date=parseTime(value,true);return date?date.toLocaleDateString("zh-CN",{year:"numeric",month:"2-digit",day:"2-digit"}):"暂无数据"}
+  function resetText(value){const target=parseTime(value);if(!target)return "恢复暂无";const diff=target-Date.now();if(diff<=0)return "待恢复";const hours=Math.floor(diff/3600000),days=Math.floor(hours/24),rest=hours%24;return days>0?`${days}天${rest}小时`:`${Math.max(1,hours)}小时`}
+  function quotaUsed(account){if(hasNumber(account.weekly_used_percent))return clamp(account.weekly_used_percent);if(hasNumber(account.weekly_limit)&&Number(account.weekly_limit)>0&&hasNumber(account.weekly_usage))return clamp(Number(account.weekly_usage)/Number(account.weekly_limit)*100);return null}
+  function expiryInfo(account){
+    const automatic=account.automatic_expiry_at||account.expired_at||"",manual=expiryNotes[account.id]?.manual_expiry||"",note=expiryNotes[account.id]?.note||"";
+    const selected=automatic||manual,date=parseTime(selected,true),days=date?Math.ceil((date-Date.now())/86400000):null;
+    return {automatic,manual,note,selected,date,days,source:automatic?"自动":manual?"手工":""};
   }
-  function exactTime(value){
-    if(!value)return "暂无数据";const date=new Date(value);if(Number.isNaN(date.getTime()))return escapeHTML(value);
-    return date.toLocaleString("zh-CN",{month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hour12:false});
+  function expiryShort(account){const info=expiryInfo(account);if(!info.date)return "订阅到期暂无";if(info.days<0)return "订阅已到期";if(info.days===0)return "订阅今日到期";if(info.days<=90)return `${info.days}天到期`;return info.date.toLocaleDateString("zh-CN",{month:"2-digit",day:"2-digit"})}
+  function authInfo(account){
+    if(account.authorization_type==="apikey")return {text:"API Key",kind:"unknown"};
+    if(account.authorization_alive===true)return {text:"授权存活",kind:"good"};
+    if(account.authorization_alive===false)return {text:"授权失效",kind:"bad"};
+    if(account.authorization_probe_status==="error")return {text:"探测异常",kind:"unknown"};
+    return {text:"未探测",kind:"unknown"};
   }
-  function healthScore(account){
-    if(!account.valid)return 1;
-    const health=String(account.ops_health||"").toLowerCase();
-    if(/critical|unhealthy|failed|error/.test(health))return 2;
-    if(/degraded|warning|warn|limited/.test(health))return 3;
-    const requests=Number(account.recent_requests)||0,errors=Number(account.recent_errors)||0,total=requests+errors;
-    if(total>0&&errors/total>=.2)return 2;
-    if(total>0&&errors/total>=.05)return 3;
-    if(errors>0)return 4;
-    return 5;
-  }
+  function healthScore(account){if(account.authorization_alive===false)return 1;if(!account.valid)return 1;const health=String(account.ops_health||"").toLowerCase();if(/critical|unhealthy|failed|error/.test(health))return 2;if(/degraded|warning|warn|limited/.test(health))return 3;const requests=Number(account.recent_requests)||0,errors=Number(account.recent_errors)||0,total=requests+errors;if(total>0&&errors/total>=.2)return 2;if(total>0&&errors/total>=.05)return 3;if(errors>0)return 4;return 5}
   function healthStars(account){const score=healthScore(account);return `<span class="health-stars" title="健康评估 ${score}/5">${"★".repeat(score)}${"☆".repeat(5-score)}</span>`}
   function detailItem(label,value,wide=false){return `<div class="detail-item ${wide?"wide":""}"><span class="detail-label">${label}</span><span class="detail-value">${value}</span></div>`}
+  function resetCreditText(account){if(account.authorization_type==="apikey")return "不适用";return hasNumber(account.reset_credits_available)?`${Number(account.reset_credits_available)} 次可用`:"刷新获取"}
   function detailHTML(account,detail){
     const five=hasNumber(account.five_hour_used_percent)?`${Math.round(clamp(account.five_hour_used_percent))}% · ${resetText(account.five_hour_reset_at)}`:"暂无数据";
     const weekly=quotaUsed(account),weeklyValue=weekly===null?"暂无数据":`${Math.round(weekly)}% 已用 · ${resetText(account.weekly_reset_at)}`;
-    const activity=`${(account.recent_requests||0).toLocaleString()} 请求 · ${account.recent_errors||0} 错误`;
+    const activity=`${(account.recent_requests||0).toLocaleString()} 请求 · ${account.recent_errors||0} 错误`,expiry=expiryInfo(account),auth=authInfo(account);
     return `<div class="detail">
-      ${detailItem("账号名称",escapeHTML(detail.display_name),true)}
-      ${detailItem("5H",five)}${detailItem("7D / 周限",weeklyValue)}
-      ${detailItem("绑定分组",escapeHTML((account.groups||[]).join(" · ")||"未分组"),true)}
-      ${detailItem("授权类型",escapeHTML(account.authorization_type||"暂无"))}${detailItem("套餐",escapeHTML(account.plan||"暂无"))}
-      ${detailItem("重置次数","暂无数据")}${detailItem("额度更新",exactTime(account.usage_updated_at))}
-      ${detailItem("最后使用",exactTime(account.last_used_at))}${detailItem("24h 活动",activity)}
-      ${account.rate_limit_reset_at?detailItem("限流恢复",exactTime(account.rate_limit_reset_at),true):""}
+      ${detailItem("账号名称",escapeHTML(detail.display_name),true)}${detailItem("5H",five)}${detailItem("7D / 周限",weeklyValue)}
+      ${detailItem("绑定分组",escapeHTML((account.groups||[]).join(" · ")||"未分组"),true)}${detailItem("授权类型",escapeHTML(account.authorization_type||"暂无"))}${detailItem("套餐",escapeHTML(account.plan||"暂无"))}
+      ${detailItem("授权状态",auth.text)}${detailItem("授权探测",exactTime(account.authorization_checked_at))}${detailItem("可用重置",resetCreditText(account))}${detailItem("重置卡到期",exactTime(account.reset_credit_expiry_at))}
+      ${detailItem("订阅自动到期",dateOnly(expiry.automatic))}${detailItem("手工补充到期",dateOnly(expiry.manual))}${expiry.note?detailItem("手工备注",escapeHTML(expiry.note),true):""}
+      ${detailItem("额度更新",exactTime(account.usage_updated_at))}${detailItem("最后使用",exactTime(account.last_used_at))}${detailItem("24h 活动",activity,true)}
     </div>`;
   }
+  function metric(label,value,color=""){return `<div class="metric"><span>${label}</span><strong class="${color}">${value}</strong></div>`}
   function render(){
-    const normal=summary?.valid_accounts??accounts.filter(a=>a.valid).length;
-    const quotaReadable=accounts.filter(a=>quotaUsed(a)!==null).length;
-    document.querySelector("#metrics").innerHTML=metric("正常账号",normal,"healthy")+metric("周限可读",`${quotaReadable}/${accounts.length}`)+metric("手动关注",focusIDs.size,focusIDs.size?"warn":"");
-    document.querySelector("#sync").textContent=`${accounts.length} 个原生账号`;
+    const normal=summary?.valid_accounts??accounts.filter(a=>a.valid).length,oauth=accounts.filter(a=>a.authorization_type==="oauth"),alive=oauth.filter(a=>a.authorization_alive===true).length,dead=oauth.filter(a=>a.authorization_alive===false).length;
+    document.querySelector("#metrics").innerHTML=metric("正常账号",normal,"healthy")+metric("授权存活",oauth.length?`${alive}/${oauth.length}`:"--",dead?"bad-text":"")+metric("手动关注",focusIDs.size,focusIDs.size?"warn-text":"");
+    document.querySelector("#sync").textContent=`${accounts.length} 个可调度账号`;
     const sorted=[...accounts].sort((a,b)=>(Number(focusIDs.has(b.id))-Number(focusIDs.has(a.id)))||String(a.display_name).localeCompare(String(b.display_name),"zh-CN"));
     const rows=sorted.filter(a=>filter==="all"||(filter==="focus"&&focusIDs.has(a.id))||(filter==="tight"&&quotaUsed(a)!==null&&quotaUsed(a)>=90));
     document.querySelector("#list").innerHTML=rows.length?rows.map(account=>{
-      const focused=focusIDs.has(account.id),detail=accountDetails.get(account.id),used=quotaUsed(account);
-      const barClass=used!==null&&used>=90?"bad":used!==null&&used>=70?"warn":"";
-      const label=hasNumber(account.weekly_limit)?"周限":"7D";
-      const plan=String(account.plan||account.provider||"未知").toUpperCase();
-      return `<article class="account ${focused?"focus":""}">
-        <div class="head"><div class="identity"><button class="name-button" data-detail-id="${account.id}" title="展开账号详情">${escapeHTML(detail?.display_name||account.display_name||account.email_masked)} ${detail?"⌃":"⌄"}</button><div class="meta">${escapeHTML(plan)} · ${escapeHTML((account.groups||[]).join(" · ")||"未分组")}</div></div><button class="focus-button ${focused?"active":""}" data-focus-id="${account.id}" title="${focused?"取消关注":"设为关注"}" aria-label="${focused?"取消关注":"设为关注"}">${focused?"★":"☆"}</button><div class="state ${account.valid?"":"bad"}" title="${account.valid?"当前状态正常且可调度":"当前不可调度"}"><span class="signal"><i></i><i></i><i></i></span>${account.valid?"正常":"异常"}</div></div>
+      const focused=focusIDs.has(account.id),detail=accountDetails.get(account.id),used=quotaUsed(account),expiry=expiryInfo(account),auth=authInfo(account),expiring=focused&&expiry.days!==null&&expiry.days<=settings.expiryWarnDays;
+      const barClass=used!==null&&used>=90?"bad":used!==null&&used>=70?"warn":"",label=hasNumber(account.weekly_limit)?"周限":"7D",plan=String(account.plan||account.provider||"未知").toUpperCase();
+      return `<article class="account ${focused?"focus":""} ${expiring?"expiring":""}">
+        <div class="head"><div class="identity"><button class="name-button" data-detail-id="${account.id}" title="展开账号详情">${escapeHTML(detail?.display_name||account.display_name||account.email_masked)} ${detail?"⌃":"⌄"}</button><div class="meta">${escapeHTML(plan)} · ${escapeHTML((account.groups||[]).join(" · ")||"未分组")}</div></div><button class="focus-button ${focused?"active":""}" data-focus-id="${account.id}" title="${focused?"取消关注":"设为关注"}" aria-label="${focused?"取消关注":"设为关注"}">${focused?"★":"☆"}</button><div class="state ${auth.kind==="bad"?"bad":auth.kind==="unknown"?"unknown":""}" title="${auth.text}"><span class="signal"><i></i><i></i><i></i></span>${auth.text}</div></div>
         <div class="quota"><span class="quota-label">${label}</span><div class="bar"><div class="fill ${barClass}" style="width:${used===null?0:used}%"></div></div><span class="pct">${used===null?"--":`${Math.round(used)}%`}</span><span class="reset" title="${escapeHTML(account.weekly_reset_at||"")}">${resetText(account.weekly_reset_at)}</span></div>
-        <div class="card-foot"><span>健康 ${healthStars(account)}</span><span>${escapeHTML(account.authorization_type||"未知授权")}</span></div>
-        ${detail?detailHTML(account,detail):""}
+        <div class="card-foot"><span>健康 ${healthStars(account)}</span><span>${resetCreditText(account)}</span><span class="push ${expiring?"expiry-soon":""}" title="${escapeHTML(expiry.selected?`订阅到期：${dateOnly(expiry.selected)}（${expiry.source}）`:"订阅到期暂无")}">${expiryShort(account)}</span></div>${detail?detailHTML(account,detail):""}
       </article>`;
     }).join(""):'<div class="empty">没有符合条件的账号</div>';
+    bindAccountActions();renderSettings();updateLastRefresh();
+  }
+  function bindAccountActions(){
     document.querySelectorAll("[data-focus-id]").forEach(button=>button.addEventListener("click",()=>{const id=button.dataset.focusId;focusIDs.has(id)?focusIDs.delete(id):focusIDs.add(id);localStorage.setItem("sub2FocusIDs",JSON.stringify([...focusIDs]));render()}));
     document.querySelectorAll("[data-detail-id]").forEach(button=>button.addEventListener("click",async()=>{const id=button.dataset.detailId;if(accountDetails.has(id)){accountDetails.delete(id);render();return}button.disabled=true;try{const response=await fetch(`/api/accounts/${id}`);if(!response.ok)throw new Error();accountDetails.set(id,await response.json());render()}catch{button.disabled=false}}));
   }
   function renderPools(){
-    document.querySelector("#pools").innerHTML=pools.map(pool=>{
-      const used=hasNumber(pool.weekly_used_percent)?clamp(pool.weekly_used_percent):null;
-      const barClass=used!==null&&used>=90?"bad":used!==null&&used>=70?"warn":"";
-      const source=pool.id==="0703"?"原生 7D":"2 个镜像号";
-      let left="额度暂无",right=pool.weekly_reset_at?`恢复 ${resetText(pool.weekly_reset_at)}`:"恢复时间暂无";
-      if(hasNumber(pool.weekly_limit)&&hasNumber(pool.weekly_usage)){
-        const remaining=Math.max(0,Number(pool.weekly_limit)-Number(pool.weekly_usage));
-        left=`已用 ${formatNumber(pool.weekly_usage)} / ${formatNumber(pool.weekly_limit)}`;
-        right=`剩余 ${formatNumber(remaining)}`;
-      }else if(used!==null){left=`本周已用 ${Math.round(used)}%`;}
-      return `<article class="pool"><div class="pool-head"><strong>${escapeHTML(pool.name)}</strong><span class="source-tag">${source}</span></div><div class="pool-quota"><span>周限已用</span><strong>${used===null?"--":`${Math.round(used)}%`}</strong></div><div class="bar"><div class="fill ${barClass}" style="width:${used===null?0:used}%"></div></div><div class="pool-foot"><span>${left}</span><span title="${escapeHTML(pool.weekly_reset_at||"")}">${right}</span></div></article>`;
-    }).join("")||'<div class="empty">暂无重点账号池额度</div>';
+    document.querySelector("#pools").innerHTML=pools.map(pool=>{const used=hasNumber(pool.weekly_used_percent)?clamp(pool.weekly_used_percent):null,barClass=used!==null&&used>=90?"bad":used!==null&&used>=70?"warn":"",source=pool.id==="0703"?"原生 7D":"2 个镜像号";let left="额度暂无",right=pool.weekly_reset_at?`恢复 ${resetText(pool.weekly_reset_at)}`:"恢复时间暂无";if(hasNumber(pool.weekly_limit)&&hasNumber(pool.weekly_usage)){const remaining=Math.max(0,Number(pool.weekly_limit)-Number(pool.weekly_usage));left=`已用 ${formatNumber(pool.weekly_usage)} / ${formatNumber(pool.weekly_limit)}`;right=`剩余 ${formatNumber(remaining)}`}else if(used!==null){left=`本周已用 ${Math.round(used)}%`}return `<article class="pool"><div class="pool-head"><strong>${escapeHTML(pool.name)}</strong><span class="source-tag">${source}</span></div><div class="pool-quota"><span>周限已用</span><strong>${used===null?"--":`${Math.round(used)}%`}</strong></div><div class="bar"><div class="fill ${barClass}" style="width:${used===null?0:used}%"></div></div><div class="pool-foot"><span>${left}</span><span title="${escapeHTML(pool.weekly_reset_at||"")}">${right}</span></div></article>`}).join("")||'<div class="empty">暂无重点账号池额度</div>';
   }
-  document.querySelectorAll("[data-view]").forEach(button=>button.addEventListener("click",()=>{document.querySelectorAll("[data-view]").forEach(item=>item.classList.toggle("active",item===button));document.querySelector("#overview-view").hidden=button.dataset.view!=="overview";document.querySelector("#accounts-view").hidden=button.dataset.view!=="accounts"}));
+  function renderSettings(){
+    document.querySelector("#auto-refresh").checked=Boolean(settings.autoRefresh);document.querySelector("#refresh-minutes").value=String(settings.refreshMinutes);document.querySelector("#expiry-days").value=String(settings.expiryWarnDays);
+    document.querySelector("#account-notes").innerHTML=accounts.length?accounts.map(account=>{const note=expiryNotes[account.id]||{},automatic=account.automatic_expiry_at||account.expired_at;return `<div class="account-note"><div class="account-note-head"><strong>${escapeHTML(account.display_name||account.email_masked)}</strong><span>${automatic?`自动 ${dateOnly(automatic)}`:"自动到期暂无"}</span></div><div class="note-fields"><input type="date" data-expiry-id="${account.id}" value="${/^\d{4}-\d{2}-\d{2}$/.test(note.manual_expiry||"")?note.manual_expiry:""}" aria-label="手工补充到期日期"><input type="text" maxlength="80" data-note-id="${account.id}" value="${escapeHTML(note.note||"")}" placeholder="手工备注" aria-label="手工备注"></div></div>`}).join(""):'<div class="settings-empty">暂无可调度账号</div>';
+    document.querySelectorAll("[data-expiry-id]").forEach(input=>input.addEventListener("change",()=>{const id=input.dataset.expiryId;expiryNotes[id]=Object.assign({},expiryNotes[id],{manual_expiry:input.value});saveNotes();render()}));
+    document.querySelectorAll("[data-note-id]").forEach(input=>input.addEventListener("change",()=>{const id=input.dataset.noteId;expiryNotes[id]=Object.assign({},expiryNotes[id],{note:input.value.trim()});saveNotes();render()}));
+  }
+  function applyVisibleView(){document.querySelector("#view-tabs").hidden=showSettings;document.querySelector("#settings-view").hidden=!showSettings;document.querySelector("#overview-view").hidden=showSettings||activeView!=="overview";document.querySelector("#accounts-view").hidden=showSettings||activeView!=="accounts";const button=document.querySelector("#settings-button"),label=showSettings?"关闭设置":"设置";button.classList.toggle("active",showSettings);button.innerHTML=showSettings?"&#10005;":"&#9881;";button.title=label;button.setAttribute("aria-label",label)}
+  function setStatus(text,warn=false){const status=document.querySelector("#status");status.classList.toggle("warn",warn);status.innerHTML=`<span class="dot"></span><span>${escapeHTML(text)}</span>`}
+  function showToast(text,bad=false){const toast=document.querySelector("#toast");toast.textContent=text;toast.classList.toggle("bad",bad);toast.hidden=false;clearTimeout(showToast.timer);showToast.timer=setTimeout(()=>toast.hidden=true,5000)}
+  function updateLastRefresh(){const latest=accounts.map(a=>parseTime(a.authorization_checked_at)).filter(Boolean).sort((a,b)=>b-a)[0];document.querySelector("#last-refresh").textContent=latest?`探测 ${latest.toLocaleTimeString("zh-CN",{hour:"2-digit",minute:"2-digit",hour12:false})}`:"尚未实时探测"}
+  async function load(quiet=false){try{const [s,a,p]=await Promise.all([fetch("/api/summary"),fetch("/api/accounts"),fetch("/api/pools")]);if(!s.ok||!a.ok||!p.ok)throw new Error();summary=await s.json();accounts=(await a.json()).accounts;pools=(await p.json()).pools;setStatus(refreshing?"刷新中":"Bridge 在线");render();renderPools()}catch{setStatus("连接失败",true);if(!quiet)document.querySelector("#list").innerHTML='<div class="empty">暂时无法读取 Sub2 数据</div>'}}
+  async function refreshAccounts(silent=false){if(refreshing)return;refreshing=true;const button=document.querySelector("#refresh-button");button.disabled=true;button.classList.add("refreshing");setStatus("探测中");try{const response=await fetch("/api/refresh",{method:"POST"});const result=await response.json();if(!response.ok)throw new Error(result.error||"刷新失败");await load(true);const message=result.attempted===0&&result.skipped_by_cooldown?"刚刚已探测，已跳过重复请求":`状态刷新完成：${result.succeeded} 存活 · ${result.unauthorized} 失效 · ${result.failed} 异常 · ${result.reset_credits_read} 个账号读到重置次数`;if(!silent||result.unauthorized||result.failed)showToast(message,Boolean(result.unauthorized||result.failed));setStatus("Bridge 在线")}catch(error){setStatus("刷新失败",true);showToast(error.message||"刷新失败",true)}finally{refreshing=false;button.disabled=false;button.classList.remove("refreshing")}}
+  function scheduleAutoRefresh(){if(autoTimer)clearInterval(autoTimer);if(settings.autoRefresh)autoTimer=setInterval(()=>refreshAccounts(true),Math.max(1,Number(settings.refreshMinutes)||5)*60000)}
+  document.querySelectorAll("[data-view]").forEach(button=>button.addEventListener("click",()=>{activeView=button.dataset.view;document.querySelectorAll("[data-view]").forEach(item=>item.classList.toggle("active",item===button));applyVisibleView()}));
   document.querySelectorAll("[data-filter]").forEach(button=>button.addEventListener("click",()=>{filter=button.dataset.filter;document.querySelectorAll("[data-filter]").forEach(item=>item.classList.toggle("active",item===button));render()}));
-  async function load(){
-    try{
-      const [s,a,p]=await Promise.all([fetch("/api/summary"),fetch("/api/accounts"),fetch("/api/pools")]);if(!s.ok||!a.ok||!p.ok)throw new Error();
-      summary=await s.json();accounts=(await a.json()).accounts;pools=(await p.json()).pools;
-      document.querySelector("#status").innerHTML='<span class="dot"></span>Bridge 在线';render();renderPools();
-    }catch{document.querySelector("#status").innerHTML='<span class="dot" style="background:#b36b1e"></span>连接失败';document.querySelector("#list").innerHTML='<div class="empty">暂时无法读取 Sub2 数据</div>';}
-  }
-  load();setInterval(load,60000);
+  document.querySelector("#settings-button").addEventListener("click",()=>{showSettings=!showSettings;applyVisibleView();renderSettings()});document.querySelector("#refresh-button").addEventListener("click",()=>refreshAccounts(false));
+  document.querySelector("#auto-refresh").addEventListener("change",event=>{settings.autoRefresh=event.target.checked;saveSettings()});document.querySelector("#refresh-minutes").addEventListener("change",event=>{settings.refreshMinutes=Number(event.target.value);saveSettings()});document.querySelector("#expiry-days").addEventListener("change",event=>{settings.expiryWarnDays=Math.max(1,Math.min(90,Number(event.target.value)||14));saveSettings();render()});
+  applyVisibleView();scheduleAutoRefresh();load().then(()=>{if(settings.autoRefresh)setTimeout(()=>refreshAccounts(true),250)});setInterval(()=>load(true),60000);
 </script>
 </body>
 </html>

@@ -25,6 +25,9 @@ type Config struct {
 	OAuthTimeout         time.Duration
 	AccountSource        string
 	Sub2DatabaseURL      string
+	Sub2ProbeDatabaseURL string
+	Sub2ProbeCooldown    time.Duration
+	Sub2ProbeConcurrency int
 	Sub2Target0703ID     int
 	Sub2TargetFuIDs      []string
 }
@@ -47,6 +50,9 @@ func LoadConfig() (Config, error) {
 		OAuthTimeout:         5 * time.Minute,
 		AccountSource:        strings.ToLower(envOr("CPA_ACCOUNT_SOURCE", "files")),
 		Sub2DatabaseURL:      strings.TrimSpace(os.Getenv("SUB2_DATABASE_URL")),
+		Sub2ProbeDatabaseURL: strings.TrimSpace(os.Getenv("SUB2_PROBE_DATABASE_URL")),
+		Sub2ProbeCooldown:    time.Duration(envIntOr("SUB2_PROBE_COOLDOWN_SECONDS", 45)) * time.Second,
+		Sub2ProbeConcurrency: envIntOr("SUB2_PROBE_CONCURRENCY", 3),
 		Sub2Target0703ID:     envIntOr("SUB2_TARGET_0703_ACCOUNT_ID", 20),
 		Sub2TargetFuIDs:      splitCSV(envOr("SUB2_TARGET_FU_ACCOUNT_IDS", "2,24")),
 	}
@@ -66,6 +72,12 @@ func LoadConfig() (Config, error) {
 	}
 	if cfg.AccountSource == "sub2" && cfg.Sub2DatabaseURL == "" {
 		return Config{}, errors.New("SUB2_DATABASE_URL is required when CPA_ACCOUNT_SOURCE=sub2")
+	}
+	if cfg.Sub2ProbeCooldown < 30*time.Second {
+		cfg.Sub2ProbeCooldown = 30 * time.Second
+	}
+	if cfg.Sub2ProbeConcurrency < 1 || cfg.Sub2ProbeConcurrency > 6 {
+		cfg.Sub2ProbeConcurrency = 3
 	}
 	if cfg.RouterAPIKey == "" && cfg.RouterAPIKeyFile != "" {
 		value, err := readEnvFileValue(cfg.RouterAPIKeyFile, "CPA_SMART_ROUTER_KEY")

@@ -41,7 +41,11 @@ SELECT
         NULLIF(extra#>>'{upstream_billing_probe,rate_limit_reset_at}', ''),
         NULLIF(extra#>>'{upstream_billing_probe,reset_at}', '')
     ) AS rate_limit_reset_at,
-    NULLIF(extra->>'ops_health', '') AS ops_health
+    NULLIF(extra->>'ops_health', '') AS ops_health,
+    COALESCE(
+        NULLIF(credentials->>'subscription_expires_at', ''),
+        NULLIF(credentials->>'subscription_active_until', '')
+    ) AS automatic_expiry_at
 FROM public.accounts;
 
 REVOKE ALL ON public.cpa_desktop_account_usage FROM PUBLIC;

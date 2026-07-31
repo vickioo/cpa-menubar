@@ -61,13 +61,32 @@ function Reconnect-Dashboard {
     $notifyIcon.ShowBalloonTip(1500, "Sub2 账号池", "连接已刷新", [System.Windows.Forms.ToolTipIcon]::Info)
 }
 
+function Refresh-AccountStatus {
+    $refreshAccountsItem.Enabled = $false
+    try {
+        $result = Invoke-RestMethod "http://127.0.0.1:8765/api/refresh" -Method Post
+        Update-TraySummary
+        $message = "状态刷新完成：$($result.succeeded) 存活，$($result.unauthorized) 失效，$($result.failed) 异常，$($result.reset_credits_read) 个账号读到重置次数"
+        $notifyIcon.ShowBalloonTip(2200, "Sub2 账号池", $message, [System.Windows.Forms.ToolTipIcon]::Info)
+    } finally {
+        $refreshAccountsItem.Enabled = $true
+    }
+}
+
 function Update-TraySummary {
     $summary = Invoke-RestMethod "http://127.0.0.1:8765/api/summary"
     $accountResponse = Invoke-RestMethod "http://127.0.0.1:8765/api/accounts"
     $poolResponse = Invoke-RestMethod "http://127.0.0.1:8765/api/pools"
     $quotaReadable = @($accountResponse.accounts | Where-Object { $null -ne $_.weekly_used_percent }).Count
+    $oauthAccounts = @($accountResponse.accounts | Where-Object { $_.authorization_type -eq "oauth" })
+    $aliveAccounts = @($oauthAccounts | Where-Object { $_.authorization_alive -eq $true }).Count
+    $checkedAccounts = @($oauthAccounts | Where-Object { $null -ne $_.authorization_alive }).Count
+    $resetAccounts = @($oauthAccounts | Where-Object { $null -ne $_.reset_credits_available })
+    $resetTotal = ($resetAccounts | Measure-Object -Property reset_credits_available -Sum).Sum
     $validItem.Text = "有效账号：$($summary.valid_accounts)"
     $usageItem.Text = "原生周限：$quotaReadable / $(@($accountResponse.accounts).Count) 个可读"
+    $authItem.Text = "授权存活：$aliveAccounts / $checkedAccounts 已探测"
+    $resetItem.Text = if ($resetAccounts.Count -gt 0) { "可用重置：$resetTotal 次 / $($resetAccounts.Count) 个账号" } else { "可用重置：尚未刷新" }
     foreach ($pool in $poolResponse.pools) {
         $usedPercent = if ($null -ne $pool.weekly_used_percent) { [math]::Round($pool.weekly_used_percent) } else { $null }
         $remainingPercent = if ($null -ne $usedPercent) { [math]::Max(0, 100 - $usedPercent) } else { $null }
@@ -97,14 +116,19 @@ try {
 
 $menu = [System.Windows.Forms.ContextMenuStrip]::new()
 $openItem = $menu.Items.Add("打开看板")
-$refreshItem = $menu.Items.Add("重新连接")
+$refreshAccountsItem = $menu.Items.Add("刷新授权与额度")
+$reconnectItem = $menu.Items.Add("重新连接")
 $menu.Items.Add("-") | Out-Null
 $validItem = $menu.Items.Add("有效账号：-")
 $usageItem = $menu.Items.Add("原生周限：-")
+$authItem = $menu.Items.Add("授权存活：-")
+$resetItem = $menu.Items.Add("可用重置：-")
 $pool0703Item = $menu.Items.Add("0703 20X：加载中")
 $poolFuItem = $menu.Items.Add("福CCC：加载中")
 $validItem.Enabled = $false
 $usageItem.Enabled = $false
+$authItem.Enabled = $false
+$resetItem.Enabled = $false
 $pool0703Item.Enabled = $false
 $poolFuItem.Enabled = $false
 $menu.Items.Add("-") | Out-Null
@@ -123,7 +147,12 @@ $refreshTimer.Start()
 try { Update-TraySummary } catch {}
 
 $openItem.Add_Click({ Open-Dashboard })
-$refreshItem.Add_Click({
+$refreshAccountsItem.Add_Click({
+    try { Refresh-AccountStatus } catch {
+        $notifyIcon.ShowBalloonTip(2500, "Sub2 账号池", $_.Exception.Message, [System.Windows.Forms.ToolTipIcon]::Error)
+    }
+})
+$reconnectItem.Add_Click({
     try { Reconnect-Dashboard } catch {
         $notifyIcon.ShowBalloonTip(2500, "Sub2 账号池", $_.Exception.Message, [System.Windows.Forms.ToolTipIcon]::Error)
     }
