@@ -1,0 +1,35 @@
+[Unit]
+Description=CPA Desktop Bridge
+After=network-online.target cliproxy.service cpa-smart-router.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+UMask=0077
+WorkingDirectory=/opt/cpa-desktop-bridge
+Environment=CPA_DESKTOP_LISTEN=127.0.0.1:8330
+Environment=CPA_AUTH_DIR=/var/lib/cliproxy/auth
+Environment=CPA_DESKTOP_TOKEN_FILE=/etc/cpa-desktop-bridge.token
+Environment=CPA_CLIPROXY_URL=http://127.0.0.1:8317
+Environment=CPA_ROUTER_URL=http://127.0.0.1:8327
+Environment=CPA_ROUTER_API_KEY_FILE=/etc/cpa-desktop-bridge/router.env
+Environment=XAI_MANAGEMENT_API_KEY_FILE=/etc/cpa-desktop-bridge/xai-management.env
+ExecStart=/opt/cpa-desktop-bridge/cpa-desktop-bridge
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/cliproxy/auth
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+ProtectClock=true
+LockPersonality=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+[Install]
+WantedBy=multi-user.target

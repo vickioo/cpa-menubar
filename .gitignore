@@ -1,0 +1,12 @@
+app/.build/
+app/dist/
+bridge/cpa-desktop-bridge
+.DS_Store
+.env
+.env.*
+!.env.example
+*.token
+*.pem
+*.key
+bridge/deploy/router.env
+bridge/deploy/xai-management.env
