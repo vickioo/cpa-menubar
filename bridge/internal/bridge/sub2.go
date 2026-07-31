@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
@@ -44,6 +45,26 @@ LEFT JOIN recent_usage ru ON ru.account_id = a.id
 LEFT JOIN recent_errors re ON re.account_id = a.id
 WHERE a.deleted_at IS NULL
 ORDER BY a.priority DESC, a.id`
+
+const sub2PoolsQuery = `
+WITH account_counts AS (
+  SELECT group_id, count(DISTINCT account_id)::bigint AS accounts
+  FROM account_groups
+  GROUP BY group_id
+), weekly_usage AS (
+  SELECT group_id, coalesce(sum(actual_cost), 0)::double precision AS usage
+  FROM usage_logs
+  WHERE created_at >= date_trunc('week', now()) AND group_id IS NOT NULL
+  GROUP BY group_id
+)
+SELECT g.id::text, g.name, coalesce(ac.accounts, 0),
+       coalesce(g.weekly_limit_usd, 0)::double precision,
+       coalesce(wu.usage, 0)
+FROM groups g
+LEFT JOIN account_counts ac ON ac.group_id = g.id
+LEFT JOIN weekly_usage wu ON wu.group_id = g.id
+WHERE g.id IN (12, 13)
+ORDER BY g.id`
 
 type sub2AccountRow struct {
 	id                                            int64
@@ -90,6 +111,56 @@ func (s *Server) loadSub2Accounts(ctx context.Context) ([]Account, error) {
 	return accounts, rows.Err()
 }
 
+func (s *Server) handleSub2AccountDetail(w http.ResponseWriter, r *http.Request) {
+	publicID := strings.TrimPrefix(r.URL.Path, "/desktop/v1/accounts/")
+	if len(publicID) != 12 || strings.Contains(publicID, "/") {
+		writeError(w, http.StatusBadRequest, "invalid account ID")
+		return
+	}
+	rows, err := s.db.QueryContext(r.Context(), `SELECT id, name FROM accounts WHERE deleted_at IS NULL`)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to read account detail")
+		return
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var id int64
+		var name string
+		if err := rows.Scan(&id, &name); err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to read account detail")
+			return
+		}
+		if sub2PublicID(id) == publicID {
+			writeJSON(w, http.StatusOK, AccountDetail{ID: publicID, DisplayName: name})
+			return
+		}
+	}
+	writeError(w, http.StatusNotFound, "account not found")
+}
+
+func (s *Server) handleSub2Pools(w http.ResponseWriter, r *http.Request) {
+	rows, err := s.db.QueryContext(r.Context(), sub2PoolsQuery)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to read Sub2 pool summary")
+		return
+	}
+	defer rows.Close()
+	pools := make([]PoolSummary, 0, 2)
+	for rows.Next() {
+		var pool PoolSummary
+		if err := rows.Scan(&pool.ID, &pool.Name, &pool.Accounts, &pool.WeeklyLimitUSD, &pool.WeeklyUsageUSD); err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to read Sub2 pool summary")
+			return
+		}
+		pools = append(pools, pool)
+	}
+	if err := rows.Err(); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to read Sub2 pool summary")
+		return
+	}
+	writeJSON(w, http.StatusOK, PoolsResponse{GeneratedAt: time.Now(), Pools: pools})
+}
+
 func sub2AccountFromRow(row sub2AccountRow, cfg Config, now time.Time) (Account, bool) {
 	valid := row.status == "active" && row.schedulable &&
 		(!row.expiresAt.Valid || row.expiresAt.Time.After(now)) &&
@@ -99,9 +170,8 @@ func sub2AccountFromRow(row sub2AccountRow, cfg Config, now time.Time) (Account,
 		return Account{}, false
 	}
 
-	digest := sha256.Sum256([]byte(fmt.Sprintf("sub2:%d", row.id)))
 	account := Account{
-		ID: hex.EncodeToString(digest[:])[:12], Provider: "codex", Source: "sub2",
+		ID: sub2PublicID(row.id), Provider: "codex", Source: "sub2",
 		DisplayName: maskIdentifier(row.name), Plan: row.accountType,
 		Disabled: !row.schedulable, Status: row.status, Schedulable: row.schedulable,
 		Valid: valid, Focus: focus, Priority: row.priority, Groups: row.groupNames,
@@ -117,6 +187,11 @@ func sub2AccountFromRow(row sub2AccountRow, cfg Config, now time.Time) (Account,
 		account.UsageStatus = "attention"
 	}
 	return account, true
+}
+
+func sub2PublicID(id int64) string {
+	digest := sha256.Sum256([]byte(fmt.Sprintf("sub2:%d", id)))
+	return hex.EncodeToString(digest[:])[:12]
 }
 
 func containsFocusMarker(notes string) bool {

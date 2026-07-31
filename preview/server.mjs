@@ -9,11 +9,15 @@ const bridgeURL = process.env.BRIDGE_URL;
 const bridgeToken = process.env.BRIDGE_TOKEN;
 
 http.createServer(async (request, response) => {
-  const apiPath = request.url === "/api/summary"
+  let apiPath = request.url === "/api/summary"
     ? "/desktop/v1/summary"
     : request.url === "/api/accounts"
       ? "/desktop/v1/accounts"
+      : request.url === "/api/pools"
+        ? "/desktop/v1/pools"
       : null;
+  const detailMatch = request.url?.match(/^\/api\/accounts\/([a-f0-9]{12})$/);
+  if (detailMatch) apiPath = `/desktop/v1/accounts/${detailMatch[1]}`;
   if (apiPath) {
     if (!bridgeURL || !bridgeToken) {
       response.writeHead(503, { "Content-Type": "application/json; charset=utf-8" });

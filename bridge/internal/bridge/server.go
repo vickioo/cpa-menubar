@@ -63,6 +63,18 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		s.handleSummary(w, r)
 	case r.Method == http.MethodGet && r.URL.Path == "/desktop/v1/accounts":
 		s.handleAccounts(w, r)
+	case r.Method == http.MethodGet && r.URL.Path == "/desktop/v1/pools":
+		if s.cfg.AccountSource != "sub2" {
+			writeError(w, http.StatusNotFound, "not found")
+			return
+		}
+		s.handleSub2Pools(w, r)
+	case r.Method == http.MethodGet && strings.HasPrefix(r.URL.Path, "/desktop/v1/accounts/"):
+		if s.cfg.AccountSource != "sub2" {
+			writeError(w, http.StatusNotFound, "not found")
+			return
+		}
+		s.handleSub2AccountDetail(w, r)
 	case r.Method == http.MethodPost && r.URL.Path == "/desktop/v1/oauth/codex/start":
 		if s.cfg.AccountSource == "sub2" {
 			writeError(w, http.StatusMethodNotAllowed, "OAuth is disabled for the read-only Sub2 source")

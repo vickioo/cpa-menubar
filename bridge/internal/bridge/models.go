@@ -77,6 +77,24 @@ type AccountsResponse struct {
 	Accounts    []Account `json:"accounts"`
 }
 
+type AccountDetail struct {
+	ID          string `json:"id"`
+	DisplayName string `json:"display_name"`
+}
+
+type PoolSummary struct {
+	ID             string  `json:"id"`
+	Name           string  `json:"name"`
+	Accounts       int64   `json:"accounts"`
+	WeeklyLimitUSD float64 `json:"weekly_limit_usd"`
+	WeeklyUsageUSD float64 `json:"weekly_usage_usd"`
+}
+
+type PoolsResponse struct {
+	GeneratedAt time.Time     `json:"generated_at"`
+	Pools       []PoolSummary `json:"pools"`
+}
+
 type OAuthStartResponse struct {
 	State       string    `json:"state"`
 	URL         string    `json:"url"`

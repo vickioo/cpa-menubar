@@ -41,7 +41,7 @@ cpa-desktop-bridge :8330
   └─ atomically writes auth JSON only after OAuth completion
 ```
 
-The bridge does not return access tokens, refresh tokens, ID tokens, management keys, complete email addresses, or provider account IDs. Usage responses expose only masked identifiers, aggregate amounts, token counts, and status fields.
+The bridge does not return access tokens, refresh tokens, ID tokens, management keys, or provider account IDs. Account lists expose masked identifiers only. In Sub2 mode, an authenticated per-account detail request may return the complete Sub2 display name after the user selects that account; no credential fields are included.
 
 ### Sub2 read-only mode
 
@@ -76,6 +76,10 @@ Run `preview/start-tray.vbs` or use the generated desktop shortcut. The tray pro
 - provides reconnect and exit actions from its context menu.
 
 The dashboard only lists server-approved valid accounts. Stars are controlled manually and stored in the local browser profile; they do not write to Sub2. The automatic anomaly filter only considers recent errors among the returned valid accounts.
+
+Account names stay masked in the list. Selecting a name requests a narrow authenticated detail endpoint that returns only the full Sub2 display name and public account ID.
+
+The overview and tray menu show the configured weekly Sub2 group budget for groups 12 and 13. This is an internal spend limit calculated from `usage_logs.actual_cost`; it is not the provider's official ChatGPT/Codex quota. Reading official upstream quota requires a separately authorized integration with Sub2's upstream billing probe.
 
 ## Configuration
 

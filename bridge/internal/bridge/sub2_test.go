@@ -50,3 +50,12 @@ func TestSub2AccountSelectionAndSanitization(t *testing.T) {
 		t.Fatalf("unexpected mask: %q", account.DisplayName)
 	}
 }
+
+func TestSub2PublicIDIsStableAndOpaque(t *testing.T) {
+	if got := sub2PublicID(20); got != sub2PublicID(20) {
+		t.Fatal("public ID is not stable")
+	}
+	if got := sub2PublicID(20); len(got) != 12 || got == "20" {
+		t.Fatalf("public ID is not opaque: %q", got)
+	}
+}

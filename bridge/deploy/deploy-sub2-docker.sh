@@ -42,8 +42,8 @@ sudo docker exec "$postgres_container" psql -U "$db_user" -d "$db_name" -v ON_ER
   -c "GRANT USAGE ON SCHEMA public TO cpa_desktop_reader" \
   -c "GRANT SELECT (id,name,platform,type,status,schedulable,priority,expires_at,last_used_at,temp_unschedulable_until,deleted_at,notes) ON public.accounts TO cpa_desktop_reader" \
   -c "GRANT SELECT (account_id,group_id) ON public.account_groups TO cpa_desktop_reader" \
-  -c "GRANT SELECT (id,name) ON public.groups TO cpa_desktop_reader" \
-  -c "GRANT SELECT (account_id,created_at) ON public.usage_logs TO cpa_desktop_reader" \
+  -c "GRANT SELECT (id,name,weekly_limit_usd) ON public.groups TO cpa_desktop_reader" \
+  -c "GRANT SELECT (id,account_id,group_id,actual_cost,created_at) ON public.usage_logs TO cpa_desktop_reader" \
   -c "GRANT SELECT (account_id,created_at) ON public.ops_error_logs TO cpa_desktop_reader" \
   -c "ALTER ROLE cpa_desktop_reader SET default_transaction_read_only = on" \
   -c "ALTER ROLE cpa_desktop_reader SET statement_timeout = '5s'"
