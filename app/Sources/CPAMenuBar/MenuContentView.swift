@@ -157,8 +157,8 @@ struct MenuContentView: View {
             serviceBadge("CPA", healthy: model.summary?.services["cliproxy"])
             serviceBadge("Router", healthy: model.summary?.services["router"])
             Spacer()
-            let refreshable = model.summary?.refreshableAccounts ?? model.accounts.filter(\.hasRefreshToken).count
-            Label("\(refreshable) 个可刷新", systemImage: "arrow.triangle.2.circlepath")
+            let count = model.summary?.source == "sub2" ? (model.summary?.focusAccounts ?? 0) : (model.summary?.refreshableAccounts ?? model.accounts.filter(\.hasRefreshToken).count)
+            Label(model.summary?.source == "sub2" ? "\(count) 个重点" : "\(count) 个可刷新", systemImage: model.summary?.source == "sub2" ? "star.fill" : "arrow.triangle.2.circlepath")
                 .font(.caption)
                 .foregroundStyle(.secondary)
         }
@@ -167,14 +167,14 @@ struct MenuContentView: View {
     private var overviewMetrics: some View {
         HStack(spacing: 8) {
             summaryMetric(
-                "Codex",
-                value: model.summary?.codexAccounts ?? AccountListPresentation.codexAccounts(from: model.accounts).count,
+                model.summary?.source == "sub2" ? "有效" : "Codex",
+                value: model.summary?.source == "sub2" ? (model.summary?.validAccounts ?? 0) : (model.summary?.codexAccounts ?? AccountListPresentation.codexAccounts(from: model.accounts).count),
                 symbol: "person.2.fill"
             )
             summaryMetric(
-                "K12",
-                value: model.summary?.k12Accounts ?? model.accounts.filter(\.isK12).count,
-                symbol: "graduationcap.fill"
+                model.summary?.source == "sub2" ? "重点" : "K12",
+                value: model.summary?.source == "sub2" ? (model.summary?.focusAccounts ?? 0) : (model.summary?.k12Accounts ?? model.accounts.filter(\.isK12).count),
+                symbol: model.summary?.source == "sub2" ? "star.fill" : "graduationcap.fill"
             )
             summaryMetric(
                 "异常",
@@ -267,7 +267,7 @@ struct MenuContentView: View {
                 .pickerStyle(.segmented)
                 .labelsHidden()
 
-                Text("显示 \(filteredAccounts.count) / \(AccountListPresentation.codexAccounts(from: model.accounts).count) 个账号 · 异常与低额度优先")
+                Text("显示 \(filteredAccounts.count) / \(AccountListPresentation.codexAccounts(from: model.accounts).count) 个账号 · 重点与异常优先")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
             }
@@ -343,10 +343,12 @@ struct MenuContentView: View {
             }
             .disabled(model.isRefreshing)
 
-            Button(action: model.addCodexAuthorization) {
-                Label(model.isAuthorizing ? "等待授权" : "添加授权", systemImage: "person.badge.plus")
+            if model.summary?.source != "sub2" {
+                Button(action: model.addCodexAuthorization) {
+                    Label(model.isAuthorizing ? "等待授权" : "添加授权", systemImage: "person.badge.plus")
+                }
+                .disabled(model.isAuthorizing)
             }
-            .disabled(model.isAuthorizing)
 
             Spacer()
             Button("退出") { NSApplication.shared.terminate(nil) }
@@ -600,7 +602,7 @@ private struct AccountRow: View {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack(spacing: 8) {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text(account.emailMasked)
+                            Text(account.displayIdentifier)
                                 .font(.subheadline.bold())
                                 .lineLimit(1)
                             Text(account.isK12 ? "K12" : (usage.planType ?? account.plan ?? account.provider).uppercased())
@@ -608,6 +610,11 @@ private struct AccountRow: View {
                                 .foregroundStyle(.secondary)
                         }
                         Spacer()
+                        if account.focus == true {
+                            Image(systemName: "star.fill")
+                                .foregroundStyle(.yellow)
+                                .help("重点账号")
+                        }
                         if account.hasRefreshToken {
                             Image(systemName: "arrow.triangle.2.circlepath.circle.fill")
                                 .foregroundStyle(.green)
@@ -646,7 +653,18 @@ private struct AccountRow: View {
                 }
                 .font(.caption2)
 
-                creditsRow
+                if account.isSub2 {
+                    Text("优先级 \(account.priority ?? 0) · 24h 请求 \(account.recentRequests ?? 0) · 错误 \(account.recentErrors ?? 0)")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                    if let groups = account.groups, !groups.isEmpty {
+                        Text(groups.joined(separator: " · "))
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                } else {
+                    creditsRow
+                }
             }
         }
         .padding(10)

@@ -1,6 +1,7 @@
 import Foundation
 
 struct Summary: Decodable {
+    let source: String?
     let generatedAt: String
     let accountsTotal: Int
     let codexAccounts: Int
@@ -8,12 +9,15 @@ struct Summary: Decodable {
     let k12Accounts: Int
     let refreshableAccounts: Int
     let expiredAccounts: Int
+    let validAccounts: Int?
+    let focusAccounts: Int?
     let services: [String: Bool]
     let xaiUsage: XAIUsage?
     let xaiUsageStatus: String?
     let xaiUsageError: String?
 
     enum CodingKeys: String, CodingKey {
+        case source
         case generatedAt = "generated_at"
         case accountsTotal = "accounts_total"
         case codexAccounts = "codex_accounts"
@@ -21,6 +25,8 @@ struct Summary: Decodable {
         case k12Accounts = "k12_accounts"
         case refreshableAccounts = "refreshable_accounts"
         case expiredAccounts = "expired_accounts"
+        case validAccounts = "valid_accounts"
+        case focusAccounts = "focus_accounts"
         case services
         case xaiUsage = "xai_usage"
         case xaiUsageStatus = "xai_usage_status"
@@ -123,9 +129,21 @@ struct Account: Decodable, Identifiable {
     let usageStatus: String
     let usageError: String?
     let subscriptionUntil: String?
+    let source: String?
+    let displayName: String?
+    let status: String?
+    let schedulable: Bool?
+    let valid: Bool?
+    let focus: Bool?
+    let priority: Int?
+    let groups: [String]?
+    let lastUsedAt: String?
+    let recentRequests: Int64?
+    let recentErrors: Int64?
 
     enum CodingKeys: String, CodingKey {
-        case id, provider, plan, disabled, usage
+        case id, provider, plan, disabled, usage, source, status, schedulable, valid, focus, priority, groups
+        case displayName = "display_name"
         case emailMasked = "email_masked"
         case expiredAt = "expired_at"
         case lastRefreshAt = "last_refresh_at"
@@ -134,11 +152,17 @@ struct Account: Decodable, Identifiable {
         case usageStatus = "usage_status"
         case usageError = "usage_error"
         case subscriptionUntil = "subscription_until"
+        case lastUsedAt = "last_used_at"
+        case recentRequests = "recent_requests"
+        case recentErrors = "recent_errors"
     }
 
     var usageSnapshot: UsageSnapshot {
         UsageParser.parse(usage)
     }
+
+    var displayIdentifier: String { displayName ?? emailMasked }
+    var isSub2: Bool { source == "sub2" }
 }
 
 struct UsagePayload: Decodable {

@@ -3,6 +3,7 @@ package bridge
 import (
 	"errors"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -22,6 +23,10 @@ type Config struct {
 	XAIManagementKeyFile string
 	UsageTimeout         time.Duration
 	OAuthTimeout         time.Duration
+	AccountSource        string
+	Sub2DatabaseURL      string
+	Sub2FocusPriority    int
+	Sub2FocusGroupIDs    []string
 }
 
 func LoadConfig() (Config, error) {
@@ -40,6 +45,10 @@ func LoadConfig() (Config, error) {
 		XAIManagementKeyFile: envOr("XAI_MANAGEMENT_API_KEY_FILE", "/etc/cpa-desktop-bridge/xai-management.env"),
 		UsageTimeout:         15 * time.Second,
 		OAuthTimeout:         5 * time.Minute,
+		AccountSource:        strings.ToLower(envOr("CPA_ACCOUNT_SOURCE", "files")),
+		Sub2DatabaseURL:      strings.TrimSpace(os.Getenv("SUB2_DATABASE_URL")),
+		Sub2FocusPriority:    envIntOr("SUB2_FOCUS_PRIORITY", 80),
+		Sub2FocusGroupIDs:    splitCSV(os.Getenv("SUB2_FOCUS_GROUP_IDS")),
 	}
 
 	if cfg.DesktopToken == "" && cfg.DesktopTokenFile != "" {
@@ -51,6 +60,12 @@ func LoadConfig() (Config, error) {
 	}
 	if len(cfg.DesktopToken) < 32 {
 		return Config{}, errors.New("CPA desktop token must contain at least 32 characters")
+	}
+	if cfg.AccountSource != "files" && cfg.AccountSource != "sub2" {
+		return Config{}, errors.New("CPA_ACCOUNT_SOURCE must be files or sub2")
+	}
+	if cfg.AccountSource == "sub2" && cfg.Sub2DatabaseURL == "" {
+		return Config{}, errors.New("SUB2_DATABASE_URL is required when CPA_ACCOUNT_SOURCE=sub2")
 	}
 	if cfg.RouterAPIKey == "" && cfg.RouterAPIKeyFile != "" {
 		value, err := readEnvFileValue(cfg.RouterAPIKeyFile, "CPA_SMART_ROUTER_KEY")
@@ -76,6 +91,28 @@ func LoadConfig() (Config, error) {
 		}
 	}
 	return cfg, nil
+}
+
+func envIntOr(name string, fallback int) int {
+	value := strings.TrimSpace(os.Getenv(name))
+	if value == "" {
+		return fallback
+	}
+	parsed, err := strconv.Atoi(value)
+	if err != nil {
+		return fallback
+	}
+	return parsed
+}
+
+func splitCSV(value string) []string {
+	var values []string
+	for _, item := range strings.Split(value, ",") {
+		if item = strings.TrimSpace(item); item != "" {
+			values = append(values, item)
+		}
+	}
+	return values
 }
 
 func readEnvFileValue(path, name string) (string, error) {

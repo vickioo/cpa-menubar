@@ -2,6 +2,7 @@ package bridge
 
 import (
 	"crypto/subtle"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"io"
@@ -16,6 +17,7 @@ type Server struct {
 	client   *http.Client
 	sessions map[string]*oauthSession
 	mu       sync.Mutex
+	db       *sql.DB
 }
 
 func NewServer(cfg Config) (*Server, error) {
@@ -25,6 +27,13 @@ func NewServer(cfg Config) (*Server, error) {
 			Timeout: cfg.UsageTimeout,
 		},
 		sessions: make(map[string]*oauthSession),
+	}
+	if cfg.AccountSource == "sub2" {
+		db, err := sql.Open("pgx", cfg.Sub2DatabaseURL)
+		if err != nil {
+			return nil, err
+		}
+		server.db = db
 	}
 	return server, nil
 }
@@ -55,12 +64,20 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case r.Method == http.MethodGet && r.URL.Path == "/desktop/v1/accounts":
 		s.handleAccounts(w, r)
 	case r.Method == http.MethodPost && r.URL.Path == "/desktop/v1/oauth/codex/start":
+		if s.cfg.AccountSource == "sub2" {
+			writeError(w, http.StatusMethodNotAllowed, "OAuth is disabled for the read-only Sub2 source")
+			return
+		}
 		s.handleOAuthStart(w, r)
 	case r.Method == http.MethodPost && r.URL.Path == "/desktop/v1/oauth/codex/callback":
 		s.handleOAuthCallback(w, r)
 	case r.Method == http.MethodGet && r.URL.Path == "/desktop/v1/oauth/status":
 		s.handleOAuthStatus(w, r)
 	case r.Method == http.MethodPost && strings.HasPrefix(r.URL.Path, "/desktop/v1/accounts/") && strings.HasSuffix(r.URL.Path, "/reset-credit"):
+		if s.cfg.AccountSource == "sub2" {
+			writeError(w, http.StatusMethodNotAllowed, "reset credits are disabled for the read-only Sub2 source")
+			return
+		}
 		s.handleResetCredit(w, r)
 	default:
 		writeError(w, http.StatusNotFound, "not found")

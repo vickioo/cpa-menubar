@@ -4,6 +4,7 @@ enum AccountListFilter: String, CaseIterable, Identifiable {
     case all
     case plus
     case k12
+    case focus
     case attention
 
     var id: String { rawValue }
@@ -13,6 +14,7 @@ enum AccountListFilter: String, CaseIterable, Identifiable {
         case .all: "全部"
         case .plus: "Plus"
         case .k12: "K12"
+        case .focus: "重点"
         case .attention: "异常"
         }
     }
@@ -33,6 +35,8 @@ enum AccountListPresentation {
                 !account.isK12
             case .k12:
                 account.isK12
+            case .focus:
+                account.focus == true
             case .attention:
                 needsAttention(account)
             }
@@ -48,6 +52,7 @@ enum AccountListPresentation {
 
     static func sorted(_ accounts: [Account]) -> [Account] {
         accounts.sorted { left, right in
+            if (left.focus == true) != (right.focus == true) { return left.focus == true }
             let leftRank = attentionRank(left)
             let rightRank = attentionRank(right)
             if leftRank != rightRank {
@@ -60,7 +65,7 @@ enum AccountListPresentation {
                 return leftRemaining < rightRemaining
             }
 
-            return left.emailMasked.localizedCaseInsensitiveCompare(right.emailMasked) == .orderedAscending
+            return left.displayIdentifier.localizedCaseInsensitiveCompare(right.displayIdentifier) == .orderedAscending
         }
     }
 

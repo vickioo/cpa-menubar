@@ -6,12 +6,13 @@ final class AccountListPresentationTests: XCTestCase {
         let accounts = try makeAccounts()
 
         XCTAssertEqual(AccountListPresentation.filtered(accounts, by: .all).map(\.id), [
-            "disabled", "error", "low", "k12", "healthy",
+            "focus", "disabled", "error", "low", "k12", "healthy",
         ])
         XCTAssertEqual(AccountListPresentation.filtered(accounts, by: .plus).map(\.id), [
-            "disabled", "error", "low", "healthy",
+            "focus", "disabled", "error", "low", "healthy",
         ])
         XCTAssertEqual(AccountListPresentation.filtered(accounts, by: .k12).map(\.id), ["k12"])
+        XCTAssertEqual(AccountListPresentation.filtered(accounts, by: .focus).map(\.id), ["focus"])
     }
 
     func testAttentionFilterIncludesFailuresAndLowQuota() throws {
@@ -30,6 +31,7 @@ final class AccountListPresentationTests: XCTestCase {
                 #"""
                 [
                   {"id":"healthy","provider":"codex","email_masked":"h***@example.com","disabled":false,"has_refresh_token":true,"is_k12":false,"usage_status":"ok","usage":{"plan_type":"plus","rate_limit":{"primary_window":{"used_percent":20,"limit_window_seconds":604800}}}},
+                  {"id":"focus","provider":"codex","email_masked":"","display_name":"f***@example.com","disabled":false,"has_refresh_token":false,"is_k12":false,"usage_status":"ok","source":"sub2","valid":true,"focus":true,"priority":90,"groups":["重点池"],"recent_requests":42,"recent_errors":0},
                   {"id":"k12","provider":"codex","email_masked":"k***@example.com","disabled":false,"has_refresh_token":false,"is_k12":true,"usage_status":"ok","usage":{"rate_limit":{"primary_window":{"used_percent":50,"limit_window_seconds":604800}}}},
                   {"id":"low","provider":"codex","email_masked":"l***@example.com","disabled":false,"has_refresh_token":true,"is_k12":false,"usage_status":"ok","usage":{"rate_limit":{"primary_window":{"used_percent":95,"limit_window_seconds":604800}}}},
                   {"id":"error","provider":"codex","email_masked":"e***@example.com","disabled":false,"has_refresh_token":true,"is_k12":false,"usage_status":"error","usage_error":"暂时无法读取用量"},

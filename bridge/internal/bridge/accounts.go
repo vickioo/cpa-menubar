@@ -46,6 +46,21 @@ type jwtClaims struct {
 }
 
 func (s *Server) handleSummary(w http.ResponseWriter, r *http.Request) {
+	if s.cfg.AccountSource == "sub2" {
+		accounts, err := s.loadSub2Accounts(r.Context())
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to read Sub2 account status")
+			return
+		}
+		summary := Summary{Source: "sub2", GeneratedAt: time.Now(), AccountsTotal: len(accounts), CodexAccounts: len(accounts), Services: map[string]bool{"sub2": s.db != nil}}
+		for _, account := range accounts {
+			if account.Valid { summary.ValidAccounts++ }
+			if account.Focus { summary.FocusAccounts++ }
+			if account.ExpiredAt != "" { summary.Expired++ }
+		}
+		writeJSON(w, http.StatusOK, summary)
+		return
+	}
 	files, err := s.loadAuthFiles()
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to read account status")
@@ -91,6 +106,15 @@ func (s *Server) handleSummary(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleAccounts(w http.ResponseWriter, r *http.Request) {
+	if s.cfg.AccountSource == "sub2" {
+		accounts, err := s.loadSub2Accounts(r.Context())
+		if err != nil {
+			writeError(w, http.StatusInternalServerError, "failed to read Sub2 accounts")
+			return
+		}
+		writeJSON(w, http.StatusOK, AccountsResponse{GeneratedAt: time.Now(), Accounts: accounts})
+		return
+	}
 	files, err := s.loadAuthFiles()
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to read accounts")

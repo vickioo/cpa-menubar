@@ -19,9 +19,21 @@ type Account struct {
 	UsageStatus       string          `json:"usage_status"`
 	UsageError        string          `json:"usage_error,omitempty"`
 	SubscriptionUntil string          `json:"subscription_until,omitempty"`
+	Source            string          `json:"source,omitempty"`
+	DisplayName       string          `json:"display_name,omitempty"`
+	Status            string          `json:"status,omitempty"`
+	Schedulable       bool            `json:"schedulable"`
+	Valid             bool            `json:"valid"`
+	Focus             bool            `json:"focus"`
+	Priority          int             `json:"priority,omitempty"`
+	Groups            []string        `json:"groups,omitempty"`
+	LastUsedAt        string          `json:"last_used_at,omitempty"`
+	RecentRequests    int64           `json:"recent_requests,omitempty"`
+	RecentErrors      int64           `json:"recent_errors,omitempty"`
 }
 
 type Summary struct {
+	Source         string          `json:"source,omitempty"`
 	GeneratedAt    time.Time       `json:"generated_at"`
 	AccountsTotal  int             `json:"accounts_total"`
 	CodexAccounts  int             `json:"codex_accounts"`
@@ -29,6 +41,8 @@ type Summary struct {
 	K12Accounts    int             `json:"k12_accounts"`
 	Refreshable    int             `json:"refreshable_accounts"`
 	Expired        int             `json:"expired_accounts"`
+	ValidAccounts  int             `json:"valid_accounts"`
+	FocusAccounts  int             `json:"focus_accounts"`
 	Services       map[string]bool `json:"services"`
 	XAIUsage       *XAIUsage       `json:"xai_usage,omitempty"`
 	XAIUsageStatus string          `json:"xai_usage_status"`

@@ -17,6 +17,7 @@ The repository contains:
 - Optional xAI Management API billing totals and prepaid-credit balance.
 - Separate operational telemetry from a compatible smart-router summary endpoint.
 - Codex PKCE login from the menu bar, with credentials written directly to the configured auth directory.
+- Optional read-only Sub2 mode that returns only valid or explicitly focused accounts.
 - Desktop token stored only in a remote `0600` file and the local macOS Keychain.
 - Configurable auto-refresh and native launch-at-login support.
 
@@ -41,6 +42,21 @@ cpa-desktop-bridge :8330
 ```
 
 The bridge does not return access tokens, refresh tokens, ID tokens, management keys, complete email addresses, or provider account IDs. Usage responses expose only masked identifiers, aggregate amounts, token counts, and status fields.
+
+### Sub2 read-only mode
+
+Set `CPA_ACCOUNT_SOURCE=sub2` to read operational account status from Sub2 PostgreSQL instead of auth files. The bridge includes an account only when it is currently valid, or when it is marked as important by priority, `[focus]` / `[重点]` in notes, or a configured focus group.
+
+The Sub2 query uses an explicit column list and never selects `credentials`, `extra`, tokens, passwords, or complete provider identifiers. Use a dedicated PostgreSQL login with column-level grants; see [bridge/deploy/sub2-readonly.sql](bridge/deploy/sub2-readonly.sql).
+
+```dotenv
+CPA_ACCOUNT_SOURCE=sub2
+SUB2_DATABASE_URL=postgres://cpa_desktop_reader:REPLACE_ME@postgres:5432/sub2?sslmode=require
+SUB2_FOCUS_PRIORITY=80
+SUB2_FOCUS_GROUP_IDS=
+```
+
+In this mode OAuth and reset-credit endpoints are disabled, and the app hides their controls.
 
 ## Configuration
 
