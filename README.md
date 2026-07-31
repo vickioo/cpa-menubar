@@ -58,6 +58,14 @@ SUB2_FOCUS_GROUP_IDS=
 
 In this mode OAuth and reset-credit endpoints are disabled, and the app hides their controls.
 
+For a Docker deployment beside an existing Sub2 stack, use:
+
+```bash
+bridge/deploy/deploy-sub2-docker.sh /path/to/cpa-menubar
+```
+
+The script builds a static bridge, creates or rotates a column-restricted PostgreSQL reader, binds the service to `127.0.0.1:18330`, and joins the existing `sub2api_sub2api-network`. Review its network, container, database, and focus-group defaults before use.
+
 ## Configuration
 
 Copy the example and replace every placeholder locally. Never commit the resulting file.

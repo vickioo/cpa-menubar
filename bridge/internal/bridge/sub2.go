@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -33,8 +34,8 @@ WITH group_data AS (
 )
 SELECT a.id, a.name, a.platform, a.type, a.status, a.schedulable, a.priority,
        a.expires_at, a.last_used_at, a.temp_unschedulable_until,
-       coalesce(gd.group_names, ARRAY[]::text[]) AS group_names,
-       coalesce(gd.group_ids, ARRAY[]::text[]) AS group_ids,
+	       coalesce(array_to_json(gd.group_names), '[]'::json) AS group_names,
+	       coalesce(array_to_json(gd.group_ids), '[]'::json) AS group_ids,
        coalesce(ru.requests, 0), coalesce(re.errors, 0),
        coalesce(a.notes, '')
 FROM accounts a
@@ -68,11 +69,18 @@ func (s *Server) loadSub2Accounts(ctx context.Context) ([]Account, error) {
 	accounts := make([]Account, 0)
 	for rows.Next() {
 		var row sub2AccountRow
+		var groupNamesJSON, groupIDsJSON []byte
 		if err := rows.Scan(&row.id, &row.name, &row.platform, &row.accountType, &row.status,
 			&row.schedulable, &row.priority, &row.expiresAt, &row.lastUsedAt,
-			&row.tempUnschedulableUntil, &row.groupNames, &row.groupIDs,
+			&row.tempUnschedulableUntil, &groupNamesJSON, &groupIDsJSON,
 			&row.recentRequests, &row.recentErrors, &row.notes); err != nil {
 			return nil, err
+		}
+		if err := json.Unmarshal(groupNamesJSON, &row.groupNames); err != nil {
+			return nil, fmt.Errorf("decode Sub2 group names: %w", err)
+		}
+		if err := json.Unmarshal(groupIDsJSON, &row.groupIDs); err != nil {
+			return nil, fmt.Errorf("decode Sub2 group IDs: %w", err)
 		}
 		account, include := sub2AccountFromRow(row, s.cfg, time.Now())
 		if include {

@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Sub2 账号池</title>
+  <style>
+    :root{font-family:Inter,"Segoe UI",sans-serif;color:#171b20;background:#e9ecef;letter-spacing:0}
+    *{box-sizing:border-box;letter-spacing:0}body{margin:0;min-height:100vh}button{font:inherit}
+    .panel{width:min(430px,100%);min-height:100vh;margin:auto;padding:18px 16px 28px;background:rgba(249,250,251,.97);box-shadow:0 8px 30px rgba(35,42,50,.14)}
+    header{display:flex;align-items:flex-start;gap:10px;padding-bottom:14px;border-bottom:1px solid #d8dde3}
+    h1{margin:0;font-size:18px}.sub{margin-top:3px;color:#6a737d;font-size:12px}
+    .status{margin-left:auto;display:flex;align-items:center;gap:6px;color:#287148;font-size:12px;white-space:nowrap}.dot{width:7px;height:7px;border-radius:50%;background:#39a46a}
+    .metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:14px 0}
+    .metric{padding:12px;background:#fff;border:1px solid #d8dde3;border-radius:6px}.metric span{color:#69727c;font-size:11px}.metric strong{display:block;margin-top:5px;font-size:20px}.healthy{color:#287148}.warn{color:#a86613}
+    .toolbar{display:flex;align-items:center;gap:8px;padding:10px 0;border-top:1px solid #d8dde3;border-bottom:1px solid #d8dde3}
+    .tabs{display:flex;border:1px solid #cbd2d9;border-radius:6px;overflow:hidden}.tabs button{padding:6px 13px;border:0;border-right:1px solid #cbd2d9;background:#fff;cursor:pointer}.tabs button:last-child{border:0}.tabs button.active{background:#212a33;color:#fff}
+    .sync{margin-left:auto;color:#69727c;font-size:11px}.list{display:grid;gap:8px;padding-top:12px}
+    .account{padding:13px;background:#fff;border:1px solid #d8dde3;border-left:3px solid #75808a;border-radius:6px}.account.focus{border-left-color:#c38a18}.account.attention{background:#fffbf2}
+    .head,.health,.stats{display:flex;align-items:center;gap:9px}.head{align-items:flex-start}.name{font-weight:700;overflow-wrap:anywhere}.meta{margin-top:3px;color:#69727c;font-size:11px}.state{margin-left:auto;color:#287148;font-size:12px;white-space:nowrap}.state.bad{color:#a86613}
+    .tag{display:inline-block;margin-left:5px;padding:1px 5px;border:1px solid #d0a344;border-radius:4px;background:#fff8e6;color:#79540e;font-size:10px}
+    .health{margin-top:13px}.health>span{width:48px;font-size:12px}.bar{height:8px;flex:1;overflow:hidden;border-radius:4px;background:#e1e5e8}.fill{height:100%;background:#43a85e}.fill.bad{background:#c18a18}.pct{width:34px;text-align:right;font-size:12px;font-weight:700}
+    .stats{margin-top:9px;color:#69727c;font-size:11px}.stats span:last-child{margin-left:auto}.empty{padding:42px 10px;text-align:center;color:#69727c}
+    footer{margin-top:14px;color:#747d87;font-size:10px;line-height:1.5}
+    @media(max-width:430px){.panel{padding:14px 12px}.metric{padding:10px}.sync{display:none}}
+  </style>
+</head>
+<body>
+<main class="panel">
+  <header><div><h1>Sub2 账号池</h1><div class="sub">有效与重点账号 · 只读脱敏视图</div></div><div class="status" id="status"><span class="dot"></span>连接中</div></header>
+  <section class="metrics" id="metrics"></section>
+  <section class="toolbar">
+    <div class="tabs" aria-label="账号筛选"><button class="active" data-filter="all">全部</button><button data-filter="focus">重点</button><button data-filter="attention">异常</button></div>
+    <div class="sync" id="sync">实际数据</div>
+  </section>
+  <section class="list" id="list"><div class="empty">正在读取 Sub2 数据</div></section>
+  <footer>24h 健康度根据实际请求与错误聚合计算。页面不读取或返回 Token、密码、credentials、extra。</footer>
+</main>
+<script>
+  let accounts=[],summary=null,filter="all";
+  const metric=(label,value,color="")=>`<div class="metric"><span>${label}</span><strong class="${color}">${value}</strong></div>`;
+  function render(){
+    const valid=summary?.valid_accounts??accounts.filter(a=>a.valid).length;
+    const attention=accounts.filter(a=>!a.valid||(a.recent_errors||0)>0).length;
+    const requests=accounts.reduce((sum,a)=>sum+(a.recent_requests||0),0);
+    const errors=accounts.reduce((sum,a)=>sum+(a.recent_errors||0),0);
+    const success=requests+errors?Math.round(requests/(requests+errors)*100):100;
+    document.querySelector("#metrics").innerHTML=metric("24h 请求",requests.toLocaleString())+metric("成功率",`${success}%`,success>=95?"healthy":"warn")+metric("有效账号",valid,"healthy");
+    document.querySelector("#sync").textContent=`${accounts.length} 纳入 · ${attention} 关注`;
+    const sorted=[...accounts].sort((a,b)=>(Number(b.focus)-Number(a.focus))||(Number(b.valid)-Number(a.valid))||((b.priority||0)-(a.priority||0)));
+    const rows=sorted.filter(a=>filter==="all"||(filter==="focus"&&a.focus)||(filter==="attention"&&(!a.valid||(a.recent_errors||0)>0)));
+    document.querySelector("#list").innerHTML=rows.length?rows.map(a=>{
+      const requests=a.recent_requests||0,errors=a.recent_errors||0;
+      const health=requests+errors?Math.round(requests/(requests+errors)*100):(a.valid?100:0);
+      return `<article class="account ${a.focus?"focus":""} ${!a.valid||errors?"attention":""}">
+        <div class="head"><div><div class="name">${a.display_name||a.email_masked}${a.focus?'<span class="tag">重点</span>':""}</div><div class="meta">${(a.plan||a.provider).toUpperCase()} · ${(a.groups||[]).join(" · ")}</div></div><div class="state ${a.valid?"":"bad"}">${a.valid?"↻ 可调度":"需关注"}</div></div>
+        <div class="health"><span>24h 健康</span><div class="bar"><div class="fill ${health<90?"bad":""}" style="width:${health}%"></div></div><div class="pct">${health}%</div></div>
+        <div class="stats"><span>请求 ${requests.toLocaleString()} · 错误 ${errors}</span><span>优先级 ${a.priority||0}</span></div>
+      </article>`}).join(""):'<div class="empty">没有符合条件的账号</div>';
+  }
+  document.querySelectorAll("[data-filter]").forEach(button=>button.addEventListener("click",()=>{filter=button.dataset.filter;document.querySelectorAll("[data-filter]").forEach(item=>item.classList.toggle("active",item===button));render()}));
+  async function load(){
+    try{
+      const [s,a]=await Promise.all([fetch("/api/summary"),fetch("/api/accounts")]);
+      if(!s.ok||!a.ok)throw new Error();
+      summary=await s.json();accounts=(await a.json()).accounts;
+      document.querySelector("#status").innerHTML='<span class="dot"></span>Bridge 在线';
+      render();
+    }catch{document.querySelector("#status").innerHTML='<span class="dot" style="background:#b36b1e"></span>连接失败';document.querySelector("#list").innerHTML='<div class="empty">暂时无法读取 Sub2 数据</div>'}
+  }
+  load();
+</script>
+</body>
+</html>

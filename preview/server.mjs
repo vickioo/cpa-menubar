@@ -5,15 +5,45 @@ import path from "node:path";
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const port = Number(process.env.PORT || 8765);
+const bridgeURL = process.env.BRIDGE_URL;
+const bridgeToken = process.env.BRIDGE_TOKEN;
 
 http.createServer(async (request, response) => {
+  const apiPath = request.url === "/api/summary"
+    ? "/desktop/v1/summary"
+    : request.url === "/api/accounts"
+      ? "/desktop/v1/accounts"
+      : null;
+  if (apiPath) {
+    if (!bridgeURL || !bridgeToken) {
+      response.writeHead(503, { "Content-Type": "application/json; charset=utf-8" });
+      response.end(JSON.stringify({ error: "Bridge proxy is not configured" }));
+      return;
+    }
+    try {
+      const upstream = await fetch(`${bridgeURL}${apiPath}`, {
+        headers: { Authorization: `Bearer ${bridgeToken}` },
+      });
+      const content = await upstream.text();
+      response.writeHead(upstream.status, {
+        "Content-Type": "application/json; charset=utf-8",
+        "Cache-Control": "no-store",
+        "X-Content-Type-Options": "nosniff",
+      });
+      response.end(content);
+    } catch {
+      response.writeHead(502, { "Content-Type": "application/json; charset=utf-8" });
+      response.end(JSON.stringify({ error: "Bridge unavailable" }));
+    }
+    return;
+  }
   if (request.url !== "/" && request.url !== "/index.html") {
     response.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
     response.end("Not found");
     return;
   }
   try {
-    const content = await readFile(path.join(root, "index.html"));
+    const content = await readFile(path.join(root, "dashboard.html"));
     response.writeHead(200, {
       "Content-Type": "text/html; charset=utf-8",
       "Cache-Control": "no-store",
